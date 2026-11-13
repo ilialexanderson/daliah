@@ -12,7 +12,7 @@
 
 1. Step 0: "Read BRIEF.md. Do step 0: crawl daliah.ba, download all images, videos and case study text into content/, one folder per project, and convert each case study to Markdown with frontmatter (client, title, tags, year, slug). Report anything missing or broken, including the polumaraton link."
 2. Step 1: "Read BRIEF.md. Set up the Astro project and build step 1: case study grid with filters, case study overlay pages with their own URLs, team section, contact, privacy page, 404, and everything in Foundations. No hook yet: a simple static intro with the tagline. Prepare it for Cloudflare Pages."
-3. Step 2: "Read BRIEF.md. Build the hook as specified in Page flow and Hook technical spec, on top of the existing site, with all fallbacks. Start with a rough prototype so we can judge the feel before polishing."
+3. Step 2: "Read BRIEF.md. Build the hook as specified in Page flow, Hook look, Hook technical spec and Cursor layer, on top of the existing site, with all fallbacks. Follow the hook build order (a to d): phases 1-3 first, with a recording, before phases 4-5."
 4. Step 3: "Read BRIEF.md. Go through the Performance budget, Fallbacks and Pre-launch checklist and fix everything that fails."
 
 ## Goal and audience
@@ -44,16 +44,36 @@ Running cost after launch: domain only. Webflow subscription can be cancelled on
 
 ## Page flow
 
-One page, four parts, top to bottom. The hook is a creative mess that sorts itself out into the work.
+One page, top to bottom. The hook is a creative mess that sorts itself out into the work. It is scroll-driven and takes 3 to 4 screen heights: the work must be reachable within that. Longer and returning visitors get annoyed.
 
-1. **Void intro.** Dark, deep-space feel. The current line floats in the middle: "uživamo u strateškom pozicioniranju brenda, kreativnom problem-solvingu, unikatnim objavama, konceptima koji mirišu ekstra i komunikaciji koja ne smrdi na copy-paste." Particles and haze drift slowly around it and react a little to the mouse. Small purple ring or DALIAH wordmark pinned top-left the whole time (the full mark blurs at that size), contact link top-right.
-2. **Particles form the work.** On scroll, the text breaks into particles. Particles swarm and resolve into recognisable fragments from case studies: a Cupra frame, a Kodeks screen, a social post, a logo sketch. Short key lines fade in between them, one per discipline (strategija, dizajn, foto-video, social, web).
-3. **Fragments become the grid.** The whole particle cloud collapses inward and morphs into the daliah mark in one move, each particle taking the colour of the line it lands on, purple ring last. Hold for a beat, with the particles still shimmering slightly. Then the mark dissolves: particles stream outward, the fragments land in its cells as case study clips, and the cells grow into the full masonry grid. The logo is the frame of the work. Scroll is released and the page behaves normally from here.
-4. **Case studies.** Masonry grid, filters, every tile opens a case study.
-5. **Team.** Floating portraits in the void, each opens a bio card. Details below.
-6. **Contact.** Email, phone, Instagram, one line. Nothing else.
+**Main reference: hubtown.co.in (Unseen Studio).** Copy its polish, not its pacing:
 
-Scroll length for parts 1–3: about 3 to 4 screen heights. Longer and returning visitors get annoyed. Add a small "preskoči na radove" link visible during the hook.
+- a 0-100% loader that ends on a short ready line
+- one-word chapter labels
+- damped camera and Lenis smooth scroll
+- micro-parallax on cards, text and buttons
+- shader transitions (dissolve, distortion) between scenes, never hard cuts
+- a sound toggle, off by default
+
+Hubtown is long and slow. We are not.
+
+**Hook sequence**
+
+1. **Void.** The existing tagline fades in on scroll over drifting dust: "uživamo u strateškom pozicioniranju brenda, kreativnom problem-solvingu, unikatnim objavama, konceptima koji mirišu ekstra i komunikaciji koja ne smrdi na copy-paste." No logo.
+2. **Tension.** The text glows, enlarges slightly and jitters/shakes for a beat.
+3. **Explosion.** The text bursts into particles in 2-3 frames. Very fast.
+4. **Chaos.** The particles resolve into case study cards, randomly rotated and tilted in 3D, at different depths, with depth blur by z. The cards drift.
+5. **Settle.** The cards ease into the masonry grid. The logo arrives as one of the first grid tiles and links to a short about-us page. Scroll is released and the page behaves normally from here.
+
+Then:
+
+6. **Case studies.** Masonry grid, filters, every tile opens a case study.
+7. **Team.** Floating portraits, each opens a bio card. Details below.
+8. **Contact.** Email, phone, Instagram, one line. No form.
+
+A small "preskoči na radove" link is visible from the first frame of the hook.
+
+**Dropped for good:** logo morph, the purple ring (as cursor, in the hook, or as a pinned corner logo during the hook), showreel in a circle, vortex, metro line drawing, discipline key lines between fragments.
 
 ## Brand and colour
 
@@ -69,42 +89,71 @@ The daliah mark is a square split into cells by coloured lines, with a purple ri
 | Slate blue | #5F7E94 | One discipline |
 
 - **One colour per discipline.** The five line colours map to strategija, dizajn, foto-video, social and web. Filter tags, tile borders and particle tints use them, so the colours carry meaning.
-- **The ring is the interaction.** The purple ring is the custom cursor and hover lens over tiles and portraits. On touch devices it appears briefly where you tap.
-- **Contrast rules.** Purple on the dark void is near-invisible: use it only for the ring and accents there, never text. Orange and olive on the light team section fail as text (about 2:1 on white): lines and shapes only, text in purple or near-black.
-- **Corner logo.** The full mark blurs below about 48 px. Pin the ring or the DALIAH wordmark instead.
+- **The ring is not the cursor.** No custom cursor graphic anywhere, and the ring does not appear in the hook. The logo (mark and wordmark) appears as a grid tile, see Page flow.
+- **Contrast rules.** Purple on the dark void is near-invisible: use it only for small accents there, never text. Orange and olive on the light team section fail as text (about 2:1 on white): lines and shapes only, text in purple or near-black.
+- **Corner logo.** The full mark blurs below about 48 px. Outside the hook, use the DALIAH wordmark where a small logo is needed.
+- **Inside the hook the palette lives only in the cards.** The six colours appear inside case study cards, never as glow or UI colour. See Hook look.
+
+## Hook look
+
+Muted, cinematic, professional. Not neon, not gamey.
+
+- Background: cool grey-teal void, `#0d1113`, with fog and depth blur and film grain. No bloom.
+- UI chrome: 1 px hairlines, monospace labels.
+- The brand palette (#642969, #DF769C, #EBA342, #A29342, #D75E3A, #5F7E94) appears only inside the case study cards, never as glow.
+- Typography: not decided. Propose two options before building, don't guess. Ask for the Hubtown screenshots if type or timing decisions need them.
 
 ## Hook technical spec
 
-Hybrid build: pre-rendered atmosphere underneath, real-time particles and fragments on top. Rich look without a 30 MB download.
+Three.js. Real-time particles and cards, with an optional pre-rendered atmosphere loop behind. Rich look without a 30 MB download.
 
 **Layers, back to front**
 
-- **Atmosphere:** short looping video of clouds, haze, light, made in After Effects or Blender. 8–10 s loop, dark, low contrast so text stays readable. WebM + MP4 fallback.
-- **Particles:** Three.js points, around 20–40k on desktop, 8–15k on phones. Each particle has a random start position and a target position. Scroll progress blends between them.
-- **Fragments:** 20–30 textured planes using real case study stills. They fade in where particles converge, then fly to their grid tile positions.
-- **Text:** HTML on top of the canvas, not inside WebGL, so it stays sharp and searchable.
+- **Atmosphere (optional):** short looping video of fog, haze, light. 8–10 s loop, dark, low contrast so text stays readable. WebM + MP4 fallback.
+- **Particles:** GPU points with a point-to-shape morph, around 20–40k on desktop, 8–15k on phones. Each particle has a start position and target positions; scroll progress blends between them.
+- **Cards:** textured planes using the real case study thumbnails from `content/`, never placeholders. Random 3D rotation and depth in the chaos phase, then ease into their grid tile positions.
+- **Text:** HTML on top of the canvas, not inside WebGL, so it stays sharp and searchable. For the explosion, particles take over from the text in the same frame.
+- **Post-processing:** film grain, depth blur by z, the cursor displacement pass (below), and shader transitions between scenes.
 
 **How the particle morphs work**
 
-- Text to particles: sample points from the intro text rendered to an offscreen canvas.
-- Particles to fragment: sample points from each fragment image's shape or brightness.
-- Logo morph: sample target points densely along the mark's vector paths, tagging each with its line's colour. Every particle gets a target, so the cloud condenses into the mark all at once. Thin strokes need density: weight sampling toward the lines and raise particle size during the hold, or the mark looks patchy on phones with fewer particles. Optional: crossfade to the solid SVG at the peak of the hold for a crisp frame. The mark's cell rectangles become the first grid layout, then animate to the full masonry grid.
+- Text to particles: sample points from the tagline rendered to an offscreen canvas, matching the HTML text's position.
+- Particles to cards: sample points from each card's area or image brightness.
 - All targets are precomputed on load, so scrolling just interpolates.
+
+**Cursor layer**
+
+Reference: exp-digital-city.lusion.co. The exact effect is not confirmed, so every value lives in one config file and stays tunable.
+
+- Cards tilt toward the cursor: rotateY ≈ (mx − cx) / vw × 40°, rotateX ≈ −(my − cy) / vh × 30°, scaled by depth (near cards tilt more). Production maximum about 8–12°, lerped/damped.
+- Micro-parallax: cards shift about 5% of the cursor offset, scaled by depth.
+- A soft light under the pointer (radial, low opacity).
+- A full-screen 2D displacement-map post-processing pass that warps the canvas slightly around the pointer.
+- Active only in phases 4–5 and in the grid. Off on touch, off under `prefers-reduced-motion`.
+- No custom cursor graphic over the scene.
 
 **Performance budget**
 
 | Item | Desktop | Phone |
 | --- | --- | --- |
 | Hook total download | ≤ 6 MB | ≤ 3 MB |
-| Atmosphere loop | 720p, ≤ 2.5 MB | 540p, ≤ 1.2 MB |
-| Fragment images | WebP/AVIF, ≤ 800 px wide | ≤ 500 px wide |
+| Particles | 20–40k | 8–15k |
+| Atmosphere loop (if used) | 720p, ≤ 2.5 MB | 540p, ≤ 1.2 MB |
+| Card images | WebP/AVIF, ≤ 800 px wide | ≤ 500 px wide |
 | Frame rate target | 60 fps | 30 fps minimum |
 
 **Fallbacks**
 
-- Weak device (low GPU tier, detected via detect-gpu) or slow connection: skip particles, show the atmosphere loop with the text, then go straight to the grid.
-- `prefers-reduced-motion`: no hook animation at all, static intro, then grid.
-- Grid and case studies must work with JavaScript off. The hook is decoration on top of normal HTML, never the only way to reach the work.
+- The hook is a separate module behind a flag. The site must ship without it if it fails.
+- Low GPU tier (detect-gpu), `prefers-reduced-motion` or JavaScript off: static hero and a plain masonry grid, no WebGL.
+- The hook chunk is lazy-loaded and everything is self-hosted. The grid and case studies work without it.
+
+**Hook build order (step 2)**
+
+a) Make the hook a separate module that can be switched off by a flag.
+b) Build phases 1–3 (text → tension → explosion) and share a screen recording.
+c) Then phases 4–5 (chaos → grid) with the cursor layer.
+d) Run Lighthouse (mobile) and report the numbers.
 
 Test on a real mid-range Android over mobile data before calling it done.
 
@@ -141,7 +190,7 @@ The team section is the biggest risk of sliding back into a generic agency site.
 - 5–7 people to start. Layout must handle up to about 10 without redesign.
 - Portraits are circles and squares in a loose, scattered layout, slowly floating. Order is shuffled on each visit, but positions come from a few hand-tuned layouts, not pure random, so nothing overlaps or clumps.
 - All portraits graded the same (e.g. black and white, same crop and lighting) so mixed shapes still read as one set.
-- Hover (desktop): portrait scales up about 1.3x, others ease back slightly, name appears under it.
+- Hover (desktop): portrait scales up about 1.3x, others ease back slightly, name appears under it. No ring or custom cursor.
 - Click or tap: a card opens with first name, what they actually do in plain words, one human detail, and 2–3 projects they worked on, linking back to those case studies. Escape, a close button and tapping outside all close it.
 - One sentence above it, in the current voice, e.g. "kreativci i preduzetnici koji rade zajedno, bježeći od termina marketing agencija".
 - No mission statement, no values list, no client logo wall.
@@ -234,8 +283,9 @@ The unglamorous basics. None of this is visible, all of it is expected. Build it
 **Decide before building**
 
 - [ ] Final list of 6–9 case studies, ranked by strength
-- [ ] Which fragment represents each case study in the hook (one strong still each)
-- [ ] Exact key lines for each discipline in the hook
+- [ ] Which thumbnail represents each case study as a hook card (one strong still each)
+- [ ] Hook typography (two options to be proposed) and timing (Hubtown screenshots)
+- [ ] Copy for the short about-us page the logo tile links to
 - [ ] Team: who's on it, and whether everyone is OK with clips/photos
 - [ ] Bosnian only, or Bosnian + English
 - [ ] Which discipline gets which line colour
