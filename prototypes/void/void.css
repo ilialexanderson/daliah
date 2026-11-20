@@ -1,10 +1,10 @@
 :root {
-  --void: #0d1113;
-  --ink: rgba(214, 223, 221, 0.88);
-  --ink-strong: #eef3f1;
-  --ink-dim: rgba(196, 208, 205, 0.52);
-  --hair: rgba(196, 210, 207, 0.18);
-  --hair-strong: rgba(196, 210, 207, 0.42);
+  --void: #150b17; /* deep aubergine, from brand purple #642969 */
+  --ink: rgba(232, 222, 236, 0.9);
+  --ink-strong: #f6eff8;
+  --ink-dim: rgba(214, 198, 222, 0.56);
+  --hair: rgba(214, 198, 222, 0.18);
+  --hair-strong: rgba(214, 198, 222, 0.42);
   --gutter: clamp(16px, 2.2vw, 28px);
   --display: "Newsreader", Georgia, serif;
   --mono: "IBM Plex Mono", ui-monospace, monospace;
@@ -55,8 +55,8 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   z-index: 0;
   display: none;
   background:
-    radial-gradient(60% 45% at 66% 22%, rgba(120, 146, 150, 0.16), transparent 70%),
-    radial-gradient(70% 60% at 20% 80%, rgba(60, 80, 82, 0.18), transparent 70%),
+    radial-gradient(60% 45% at 66% 22%, rgba(150, 110, 165, 0.18), transparent 70%),
+    radial-gradient(70% 60% at 20% 80%, rgba(100, 41, 105, 0.22), transparent 70%),
     var(--void);
 }
 body.no-gl .fallback-bg { display: block; }
@@ -231,7 +231,8 @@ body.is-scrolled .scroll-hint { opacity: 0 !important; }
 
 /* ---------- void + tagline ---------- */
 main { position: relative; z-index: 5; }
-.void { height: 400vh; position: relative; }
+.void { height: 1000vh; position: relative; }
+.void-end { position: absolute; left: 0; bottom: 0; height: 100vh; width: 1px; }
 .stage {
   position: sticky;
   top: 0;
@@ -241,8 +242,23 @@ main { position: relative; z-index: 5; }
   place-items: center;
   padding: 0 var(--gutter);
 }
+.stage > * { grid-area: 1 / 1; }
+
+/* DALIAH: the empty home page, gone on the first scroll */
+.title {
+  margin: 0;
+  font-weight: 300;
+  font-size: clamp(56px, 13vw, 210px);
+  line-height: 1;
+  letter-spacing: 0.16em;
+  margin-right: -0.16em; /* optical centre despite the tracking */
+  color: var(--ink-strong);
+}
+body.type-b .title { font-weight: 500; letter-spacing: 0.1em; margin-right: -0.1em; }
+.title .l { display: inline-block; opacity: 0; will-change: opacity, filter, transform; }
 .tagline {
   margin: 0;
+  justify-self: center;
   max-width: 17.5em;
   text-align: center;
   font-weight: 300;
@@ -268,9 +284,40 @@ body.type-b .tagline em { font-style: normal; font-weight: 400; }
   will-change: opacity, filter, transform;
 }
 
-/* static fallback: everything visible */
-body.no-motion .tagline .w { opacity: 1 !important; filter: none !important; transform: none !important; }
-body.no-motion .void { height: 100vh; }
+/* ---------- grid links over the settled 3D cards ---------- */
+.grid-ui { position: fixed; inset: 0; z-index: 6; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
+.grid-ui.is-on { opacity: 1; }
+.grid-ui.is-on .tile { pointer-events: auto; }
+.tile { position: absolute; left: 0; top: 0; display: block; text-decoration: none; color: var(--ink); }
+.tile-thumb { display: none; }
+.tile-meta {
+  position: absolute; left: 0; right: 0; top: 100%;
+  margin-top: 10px;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 12px;
+}
+.tile-title { font-size: 17px; color: var(--ink-strong); white-space: nowrap; flex-shrink: 0; }
+.tile-tags { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.tile:focus-visible { outline-offset: 6px; }
+@media (max-width: 720px) {
+  .tile-meta { margin-top: 6px; }
+  .tile-title { font-size: 13px; }
+  .tile-tags { display: none; }
+}
+
+/* static fallback: everything visible, the grid is a plain grid */
+body.no-motion .tagline .w, body.no-motion .title .l { opacity: 1 !important; filter: none !important; transform: none !important; }
+body.no-motion .void { height: auto; }
+body.no-motion .stage { position: relative; height: auto; min-height: 100vh; gap: 48px; align-content: center; }
+body.no-motion .stage > * { grid-area: auto; }
+body.no-motion .title { font-size: clamp(44px, 9vw, 120px); }
+body.no-motion .grid-ui {
+  position: relative; inset: auto; opacity: 1; pointer-events: auto;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 56px 20px;
+  padding: 0 calc(var(--gutter) + 22px) 18vh;
+}
+body.no-motion .tile { position: relative; transform: none !important; width: auto !important; height: auto !important; }
+body.no-motion .tile-thumb { display: block; aspect-ratio: 4 / 5; background-size: cover; background-position: center; border: 1px solid var(--hair); }
+body.no-motion .tile-meta { position: static; }
 
 .after {
   position: relative;

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>daliah: praznina (prototip)</title>
+<title>daliah: hook (prototip)</title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="void.css">
 </head>
@@ -22,7 +22,7 @@
 </div>
 
 <!-- Hairline chrome -->
-<div class="chrome" aria-hidden="false">
+<div class="chrome">
   <div class="frame" aria-hidden="true">
     <i class="tick tl"></i><i class="tick tr"></i><i class="tick bl"></i><i class="tick br"></i>
   </div>
@@ -41,7 +41,7 @@
     <a href="mailto:hello@daliah.ba" class="link">kontakt</a>
   </nav>
 
-  <a href="#radovi" class="skip mono link">preskoči na radove <span aria-hidden="true">↓</span></a>
+  <a href="#radovi" class="skip mono link" id="skip">preskoči na radove <span aria-hidden="true">↓</span></a>
 
   <div class="progress mono" aria-hidden="true">
     <span id="progress-num">000</span>
@@ -62,13 +62,18 @@
 <main>
   <section id="void" class="void">
     <div class="stage">
-      <h1 class="tagline" id="tagline">uživamo u <em>strateškom</em> pozicioniranju brenda, <em>kreativnom</em> problem-solvingu, unikatnim objavama, konceptima koji <em>mirišu</em> ekstra i komunikaciji koja ne smrdi na copy-paste.</h1>
+      <h1 class="title" id="title" aria-label="daliah">DALIAH</h1>
+      <p class="tagline" id="tagline">uživamo u <em>strateškom</em> pozicioniranju brenda, <em>kreativnom</em> problem-solvingu, unikatnim objavama, konceptima koji <em>mirišu</em> ekstra i komunikaciji koja ne smrdi na copy-paste.</p>
     </div>
+    <span id="radovi" class="void-end" aria-hidden="true"></span>
   </section>
 
-  <section id="radovi" class="after">
-    <p class="mono">02 — radovi</p>
-    <p class="after-note">Ovdje počinje grid. Faze 3–5 (eksplozija, haos, grid) nisu dio ovog pregleda.</p>
+  <!-- Grid links: positioned over the 3D cards once they settle; a plain grid without WebGL -->
+  <nav class="grid-ui" id="grid-ui" aria-label="radovi"></nav>
+
+  <section class="after">
+    <p class="mono">06 — dalje</p>
+    <p class="after-note">Ovdje se nastavlja stranica: tim, kontakt. Hook završava gridom iznad.</p>
   </section>
 </main>
 

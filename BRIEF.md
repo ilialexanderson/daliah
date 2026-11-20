@@ -98,7 +98,7 @@ The daliah mark is a square split into cells by coloured lines, with a purple ri
 
 Muted, cinematic, professional. Not neon, not gamey.
 
-- Background: cool grey-teal void, `#0d1113`, with fog and depth blur and film grain. No bloom.
+- Background: deep purple void, `#150b17`, with fog tinted from brand purple `#642969`, a lavender light, depth blur and film grain. No bloom. (Changed from grey-teal `#0d1113` by the client, 2026-11-20.)
 - UI chrome: 1 px hairlines, monospace labels.
 - The brand palette (#642969, #DF769C, #EBA342, #A29342, #D75E3A, #5F7E94) appears only inside the case study cards, never as glow.
 - Typography: not decided. Propose two options before building, don't guess. Ask for the Hubtown screenshots if type or timing decisions need them.
