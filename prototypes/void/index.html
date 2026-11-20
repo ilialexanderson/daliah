@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="bs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>daliah: praznina (prototip)</title>
+<link rel="stylesheet" href="fonts.css">
+<link rel="stylesheet" href="void.css">
+</head>
+<body class="type-a is-loading">
+
+<canvas id="gl" aria-hidden="true"></canvas>
+<div class="fallback-bg" aria-hidden="true"></div>
+
+<!-- Loader: 000 to 100, ends on a short ready line -->
+<div id="loader" role="status" aria-live="polite">
+  <div class="loader-inner">
+    <span class="loader-num" id="loader-num">000</span>
+    <span class="loader-track"><span class="loader-fill" id="loader-fill"></span></span>
+    <span class="loader-ready" id="loader-ready">spremno.</span>
+  </div>
+</div>
+
+<!-- Hairline chrome -->
+<div class="chrome" aria-hidden="false">
+  <div class="frame" aria-hidden="true">
+    <i class="tick tl"></i><i class="tick tr"></i><i class="tick bl"></i><i class="tick br"></i>
+  </div>
+
+  <div class="chapter mono" aria-live="polite">
+    <span class="chapter-num" id="chapter-num">01</span>
+    <span class="chapter-rule"></span>
+    <span class="chapter-word"><span id="chapter-word">praznina</span></span>
+  </div>
+
+  <nav class="top-right mono">
+    <button type="button" id="sound" class="sound" aria-pressed="false">
+      <span class="sound-bars" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+      <span id="sound-label" class="sound-label">zvuk isklj.</span>
+    </button>
+    <a href="mailto:hello@daliah.ba" class="link">kontakt</a>
+  </nav>
+
+  <a href="#radovi" class="skip mono link">preskoči na radove <span aria-hidden="true">↓</span></a>
+
+  <div class="progress mono" aria-hidden="true">
+    <span id="progress-num">000</span>
+    <span class="progress-track"><span class="progress-fill" id="progress-fill"></span></span>
+  </div>
+
+  <div class="type-switch mono" role="group" aria-label="pregled tipografije">
+    <span class="type-switch-label">tip</span>
+    <button type="button" data-type="a" aria-pressed="true">A<span class="long"> · newsreader + plex mono</span></button>
+    <button type="button" data-type="b" aria-pressed="false">B<span class="long"> · geist + geist mono</span></button>
+  </div>
+
+  <div class="scroll-hint mono" id="scroll-hint" aria-hidden="true">
+    <span>skrolaj</span><span class="scroll-hint-line"></span>
+  </div>
+</div>
+
+<main>
+  <section id="void" class="void">
+    <div class="stage">
+      <h1 class="tagline" id="tagline">uživamo u <em>strateškom</em> pozicioniranju brenda, <em>kreativnom</em> problem-solvingu, unikatnim objavama, konceptima koji <em>mirišu</em> ekstra i komunikaciji koja ne smrdi na copy-paste.</h1>
+    </div>
+  </section>
+
+  <section id="radovi" class="after">
+    <p class="mono">02 — radovi</p>
+    <p class="after-note">Ovdje počinje grid. Faze 3–5 (eksplozija, haos, grid) nisu dio ovog pregleda.</p>
+  </section>
+</main>
+
+<script type="module" src="void.js"></script>
+</body>
+</html>
