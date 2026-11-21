@@ -113,63 +113,6 @@ const tiles = PROJECTS.map((c, i) => {
   return a;
 });
 
-// ---------------------------------------------------------------- sound (off by default)
-const sound = (() => {
-  const btn = document.getElementById("sound");
-  const label = document.getElementById("sound-label");
-  let ctx, master, on = false;
-  function build() {
-    ctx = new AudioContext();
-    master = ctx.createGain(); master.gain.value = 0; master.connect(ctx.destination);
-    const len = ctx.sampleRate * 4;
-    const buf = ctx.createBuffer(2, len, ctx.sampleRate);
-    for (let c = 0; c < 2; c++) {
-      const d = buf.getChannelData(c); let last = 0;
-      for (let i = 0; i < len; i++) { last = (last + 0.02 * (Math.random() * 2 - 1)) / 1.02; d[i] = last * 3.2; }
-    }
-    const noise = ctx.createBufferSource(); noise.buffer = buf; noise.loop = true;
-    const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 380; lp.Q.value = 0.7;
-    const lfo = ctx.createOscillator(); lfo.frequency.value = 0.06;
-    const lfoGain = ctx.createGain(); lfoGain.gain.value = 180;
-    lfo.connect(lfoGain).connect(lp.frequency);
-    const nGain = ctx.createGain(); nGain.gain.value = 0.55;
-    noise.connect(lp).connect(nGain).connect(master);
-    [55, 82.41, 110.3].forEach((f, i) => {
-      const o = ctx.createOscillator(); o.type = "sine"; o.frequency.value = f; o.detune.value = (i - 1) * 4;
-      const g = ctx.createGain(); g.gain.value = [0.05, 0.025, 0.012][i];
-      o.connect(g).connect(master); o.start();
-    });
-    noise.start(); lfo.start();
-  }
-  btn.addEventListener("click", () => {
-    if (!ctx) build();
-    on = !on; ctx.resume();
-    const t = ctx.currentTime;
-    master.gain.cancelScheduledValues(t);
-    master.gain.setTargetAtTime(on ? 0.22 : 0, t, on ? 0.9 : 0.25);
-    btn.setAttribute("aria-pressed", String(on));
-    label.textContent = on ? "zvuk uklj." : "zvuk isklj.";
-  });
-  return {
-    setTension(x) { if (ctx && on) master.gain.setTargetAtTime(0.22 + x * 0.12, ctx.currentTime, 0.3); },
-    boom() {
-      if (!ctx || !on) return;
-      const t = ctx.currentTime;
-      // a low drop plus a burst of air
-      const o = ctx.createOscillator(); o.type = "sine";
-      o.frequency.setValueAtTime(90, t); o.frequency.exponentialRampToValueAtTime(28, t + 1.4);
-      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.5, t + 0.02); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.8);
-      o.connect(g).connect(ctx.destination); o.start(t); o.stop(t + 2);
-      const len = ctx.sampleRate * 2; const b = ctx.createBuffer(1, len, ctx.sampleRate); const d = b.getChannelData(0);
-      for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
-      const n = ctx.createBufferSource(); n.buffer = b;
-      const f = ctx.createBiquadFilter(); f.type = "lowpass"; f.frequency.setValueAtTime(2400, t); f.frequency.exponentialRampToValueAtTime(200, t + 1.5);
-      const ng = ctx.createGain(); ng.gain.value = 0.35;
-      n.connect(f).connect(ng).connect(ctx.destination); n.start(t);
-    },
-  };
-})();
-
 // ---------------------------------------------------------------- scroll + pointer state
 const state = { scrollTarget: 0, scroll: 0, mx: 0, my: 0, smx: 0, smy: 0, pmx: 0, pmy: 0, vel: 0, time: 0, mouseSeen: false };
 const voidEl = document.getElementById("void");
@@ -194,30 +137,13 @@ addEventListener("pointermove", (e) => {
   state.my = (e.clientY / innerHeight) * 2 - 1;
 });
 
-// ---------------------------------------------------------------- chapter label
-const chapterWord = document.getElementById("chapter-word");
-const chapterNum = document.getElementById("chapter-num");
-let chapter = "praznina";
-function setChapter(word, num) {
-  if (word === chapter) return;
-  chapter = word;
-  chapterWord.classList.add("is-out");
-  setTimeout(() => {
-    chapterWord.textContent = chapter; chapterNum.textContent = num;
-    chapterWord.classList.remove("is-out"); chapterWord.classList.add("is-in");
-    void chapterWord.offsetWidth;
-    chapterWord.classList.remove("is-in");
-  }, 420);
-}
-const CHAPTERS = { praznina: "01", napetost: "02", eksplozija: "03", radovi: "04" };
-
 // ---------------------------------------------------------------- DOM per frame
 const progressNum = document.getElementById("progress-num");
 const progressFill = document.getElementById("progress-fill");
 let lastJitter = 0, jx = 0, jy = 0;
 let titleParticles = false; // true once DALIAH has been sampled into particles: the letters then hand over instead of fading out
 
-function updateDOM(p, now, introT, exploded, chapterName) {
+function updateDOM(p, now, introT, exploded) {
   // DALIAH: letters arrive after the loader, and lift off into the fog on the first scroll
   const nL = letters.length;
   for (let i = 0; i < nL; i++) {
@@ -256,9 +182,7 @@ function updateDOM(p, now, introT, exploded, chapterName) {
     ? `0 0 ${(k * 26).toFixed(1)}px rgba(226, 200, 236, ${(k * 0.45).toFixed(3)}), 0 0 ${(k * 3).toFixed(1)}px rgba(250, 242, 252, ${(k * 0.55).toFixed(3)})`
     : "none";
   tagline.style.color = k > 0.001 ? `rgba(${232 + 20 * k | 0}, ${222 + 26 * k | 0}, ${236 + 16 * k | 0}, ${0.9 + 0.1 * k})` : "";
-  sound.setTension(k);
 
-  setChapter(chapterName, CHAPTERS[chapterName]);
   progressNum.textContent = String(Math.round(p * 100)).padStart(3, "0");
   progressFill.style.transform = `scaleX(${p.toFixed(4)})`;
 }
@@ -978,7 +902,6 @@ function startGL() {
       updateCamera(0, 1, 0);
       captureText();
       exploded = true;
-      if (p < CFG.explode.at + 0.03) sound.boom(); // not when landing here from a jump
     } else if (exploded && p < CFG.explode.at - 0.012) {
       exploded = false;
     }
@@ -988,7 +911,6 @@ function startGL() {
     const built = exploded ? smooth(FORM_DONE - 0.5, FORM_DONE, burstT) : 0; // 1 = grid finished
     const pre = exploded ? 1 - smooth(0, 0.9, burstT) : 1;                   // 1 = still in the void phases
     const cursorOn = !isTouch && state.mouseSeen && exploded;
-    const chapterName = !exploded ? (p < CFG.tension.start ? "praznina" : "napetost") : (burstT < 1.1 ? "eksplozija" : "radovi");
 
     updateCamera(k, pre, built);
 
@@ -1092,7 +1014,7 @@ function startGL() {
     renderer.setRenderTarget(null);
     renderer.render(postScene, orthoCam);
 
-    if (body.classList.contains("is-ready")) updateDOM(p, now, introT, exploded, chapterName);
+    if (body.classList.contains("is-ready")) updateDOM(p, now, introT, exploded);
     if (forcedDt == null) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
