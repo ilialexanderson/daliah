@@ -2,10 +2,10 @@
 // The case study text is Bosnian only; the interface around it follows the EN/BS switch.
 (() => {
   const I18N = {
-    bs: { all: "svi radovi", contact: "kontakt", client: "klijent", year: "godina", services: "usluge", read: "čitanje", next: "sljedeći projekat",
+    bs: { all: "svi radovi", contact: "kontakt", client: "klijent", year: "godina", services: "usluge", read: "čitanje", next: "još jedan projekat",
       play: "pogledaj film", visit: "posjeti", foot: "imate projekat? <em>pričajmo</em>.", other: "EN", close: "zatvori",
       tags: { integrisane: "integrisane kampanje", "foto-video": "foto i video", dizajn: "dizajn", social: "društvene mreže", web: "web" } },
-    en: { all: "all work", contact: "contact", client: "client", year: "year", services: "services", read: "read", next: "next project",
+    en: { all: "all work", contact: "contact", client: "client", year: "year", services: "services", read: "read", next: "another project",
       play: "watch the film", visit: "visit", foot: "got a project? <em>let's talk</em>.", other: "BS", close: "close",
       tags: { integrisane: "integrated campaigns", "foto-video": "photo and video", dizajn: "design", social: "social media", web: "web" } },
   };
@@ -153,6 +153,18 @@
   duo.forEach((d) => d.addEventListener("click", () => { if (!fine) { duo.forEach((o) => o.style.setProperty("--g", o === d ? 1.6 : 1)); } }));
 
   const next = document.querySelector(".next");
+  // the end link: another project, picked at random (not the one you just came from)
+  if (next?.dataset.others) {
+    try {
+      const all = JSON.parse(next.dataset.others), here = document.currentScript?.dataset.slug;
+      let prev = ""; try { prev = sessionStorage.getItem("lastProject") || ""; sessionStorage.setItem("lastProject", here || ""); } catch {}
+      const pool = all.filter((o) => o.slug !== prev).length ? all.filter((o) => o.slug !== prev) : all;
+      const o = pool[Math.floor(Math.random() * pool.length)];
+      next.href = `../${o.slug}/`; next.style.setProperty("--accent", o.accent);
+      next.querySelector(".next-title").textContent = o.title;
+      next.querySelector(".next-img img").src = `../../media/p/${o.slug}/${o.img}`;
+    } catch {}
+  }
   const nimg = next?.querySelector(".next-img");
   const np = { x: 0, y: 0, tx: 0, ty: 0, r: 0 };
   if (next && fine) {

@@ -15,6 +15,9 @@ const CFG = {
   camera: { z: 8, dolly: 3, mouse: 0.55, damp: 0.045 },
   focus: { from: 17, to: 7.2 },
   scrollDamp: 0.085,
+  // speed limit for the hook's playhead (hook fractions per second, going forward): a fast flick
+  // can't skip the moments, the animation plays them through and then catches up with the scroll
+  pace: { title: 0.05, text: 0.16, burst: 0.075, rest: 0.25 },
   grain: 0.075,
   // timeline, as fractions of the hook scroll (5 screens)
   title: { out: 0.075 },
@@ -981,7 +984,15 @@ function startGL() {
     if (window.__hook?.paused && forcedDt == null) return requestAnimationFrame(frame);
     const dt = forcedDt ?? Math.min(clock.getDelta(), 0.05);
     state.time += dt;
-    state.scroll += (state.scrollTarget - state.scroll) * (1 - Math.pow(1 - CFG.scrollDamp, dt * 60));
+    {
+      let step = (state.scrollTarget - state.scroll) * (1 - Math.pow(1 - CFG.scrollDamp, dt * 60));
+      if (step > 0 && !reduceMotion) {
+        const q = state.scroll, P = CFG.pace;
+        const rate = q < CFG.title.out + 0.01 ? P.title : q < CFG.explode.at ? P.text : q < CFG.explode.end ? P.burst : P.rest;
+        step = Math.min(step, rate * dt);
+      }
+      state.scroll += step;
+    }
     const damp = 1 - Math.pow(1 - CFG.camera.damp, dt * 60);
     state.smx += (state.mx - state.smx) * damp;
     state.smy += (state.my - state.smy) * damp;

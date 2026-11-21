@@ -18,7 +18,7 @@ SRC = ROOT / "content" / "projects"
 OUT = ROOT / "prototypes" / "void" / "projekat"
 SITE = "https://v2.daliah.ba"
 
-ORDER = ["cupra", "bash", "mirza", "kodeks", "omg"]  # the radovi order; "next project" follows it
+ORDER = ["cupra", "bash", "mirza", "kodeks", "omg"]  # the radovi order; the end link picks another project at random (this order without JS)
 
 # Brand palette (BRIEF.md), lifted where needed so it reads on the dark void.
 LAYOUT = {
@@ -260,7 +260,7 @@ def hero_html(slug, h, meta):
     return ""
 
 
-def page(slug, meta, body, cfg, nxt):
+def page(slug, meta, body, cfg, nxt, others):
     chunks = re.split(r"^## (.+)$", body, flags=re.M)
     chapters = [(chunks[i].strip(), chunks[i + 1]) for i in range(1, len(chunks), 2)]
     parts = []
@@ -345,8 +345,8 @@ def page(slug, meta, body, cfg, nxt):
     {"".join(parts)}
   </article>
 
-  <a class="next" href="../{nmeta["slug"]}/" style="--accent:{ncfg["accent"]}">
-    <span class="next-k mono" data-t="next">sljedeći projekat</span>
+  <a class="next" href="../{nmeta["slug"]}/" style="--accent:{ncfg["accent"]}" data-others='{e(json.dumps(others, ensure_ascii=False))}'>
+    <span class="next-k mono" data-t="next">još jedan projekat</span>
     <span class="next-title">{e(nmeta.get("grid_title") or nmeta["title"])}</span>
     <span class="next-img" aria-hidden="true"><img src="../../media/p/{nmeta["slug"]}/{nhero}" alt="" loading="lazy" decoding="async"></span>
     <span class="next-arrow" aria-hidden="true">→</span>
@@ -362,7 +362,7 @@ def page(slug, meta, body, cfg, nxt):
     <a class="link" href="https://www.linkedin.com/company/100072371/" rel="noopener">linkedin ↗</a>
   </div>
 </footer>
-<script src="../projekat.js?v=1" data-slug="{slug}"></script>
+<script src="../projekat.js?v=2" data-slug="{slug}"></script>
 </body>
 </html>
 """
@@ -382,7 +382,9 @@ def main():
         nslug = ORDER[(i + 1) % len(ORDER)]
         d = OUT / slug
         d.mkdir(parents=True, exist_ok=True)
-        (d / "index.html").write_text(page(slug, meta, body, LAYOUT[slug], (metas[nslug][0], LAYOUT[nslug])))
+        others = [{"slug": o, "title": metas[o][0].get("grid_title") or metas[o][0]["title"], "accent": LAYOUT[o]["accent"],
+                   "img": pathlib.Path(metas[o][0].get("hero", "")).name} for o in ORDER if o != slug]
+        (d / "index.html").write_text(page(slug, meta, body, LAYOUT[slug], (metas[nslug][0], LAYOUT[nslug]), others))
         print("wrote", d.relative_to(ROOT) / "index.html")
 
 
