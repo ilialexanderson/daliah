@@ -98,16 +98,6 @@ body.no-gl #gl { display: none; }
   transform-origin: left;
   transform: scaleX(0);
 }
-.loader-ready {
-  font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.12em;
-  color: var(--ink-dim);
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity .6s ease, transform .6s ease;
-}
-#loader.is-ready .loader-ready { opacity: 1; transform: none; }
 
 /* ---------- chrome ---------- */
 .chrome { position: fixed; inset: 0; z-index: 10; pointer-events: none; }
@@ -229,8 +219,8 @@ main { position: relative; z-index: 5; }
   font-family: var(--accent);
   font-style: italic;
   font-weight: 600;
-  font-size: 1.2em;
-  line-height: 0.9;
+  font-size: 1.37em; /* Cormorant's x-height is 0.73 of Jakarta's: this makes the lowercase letters match */
+  line-height: 0.7;
   letter-spacing: 0;
   color: var(--lilac);
 }
@@ -296,7 +286,7 @@ body.no-motion .tile-meta { position: static; }
   margin: 0; max-width: 14em; font-family: var(--display); font-weight: 400; letter-spacing: -0.03em; line-height: 1.02;
   font-size: clamp(40px, 7.4vw, 124px); color: var(--ink-strong);
 }
-.contact-line em { font-family: var(--accent); font-style: italic; font-weight: 600; font-size: 1.15em; letter-spacing: -0.01em; color: var(--lilac); }
+.contact-line em { font-family: var(--accent); font-style: italic; font-weight: 600; font-size: 1.37em; line-height: 0.8; letter-spacing: -0.01em; color: var(--lilac); }
 .contact-main { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: clamp(4px, 2vw, 28px); }
 .contact-mail {
   display: inline-flex; align-items: baseline; gap: 0.35em; text-decoration: none; color: var(--ink-strong);
@@ -323,3 +313,9 @@ body.no-motion .tile-meta { position: static; }
   .progress-track { width: 48px; }
   .scroll-hint { display: none; }
 }
+
+.lang { appearance: none; background: none; border: 0; padding: 0; cursor: pointer; color: var(--ink-dim); font: inherit; letter-spacing: inherit; text-transform: inherit; }
+.lang:hover, .lang:focus-visible { color: var(--ink-strong); }
+.tile--cta .tile-meta { display: none; }
+body.no-motion .tile--cta .tile-meta { display: flex; }
+.tile.is-narrow .tile-tags { display: none; }

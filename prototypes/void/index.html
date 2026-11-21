@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>daliah: hook (prototip)</title>
 <link rel="stylesheet" href="fonts.css?v=7">
-<link rel="stylesheet" href="void.css?v=15">
+<link rel="stylesheet" href="void.css?v=19">
 </head>
 <body class="is-loading">
 
@@ -17,7 +17,6 @@
   <div class="loader-inner">
     <span class="loader-num" id="loader-num">000</span>
     <span class="loader-track"><span class="loader-fill" id="loader-fill"></span></span>
-    <span class="loader-ready" id="loader-ready">spremno.</span>
   </div>
 </div>
 
@@ -28,7 +27,8 @@
   </div>
 
   <nav class="top-right mono">
-    <a href="#kontakt" class="link">kontakt</a>
+    <button type="button" id="lang" class="lang link mono" aria-label="Language"></button>
+    <a href="#kontakt" class="link" id="nav-contact">kontakt</a>
   </nav>
 
   <a href="#radovi" class="skip mono link" id="skip">preskoči na radove <span aria-hidden="true">↓</span></a>
@@ -40,7 +40,7 @@
 
 
   <div class="scroll-hint mono" id="scroll-hint" aria-hidden="true">
-    <span>skrolaj</span><span class="scroll-hint-line"></span>
+    <span id="hint-text">skrolaj</span><span class="scroll-hint-line"></span>
   </div>
 </div>
 
@@ -59,7 +59,7 @@
   <!-- Kontakt: one big line, email and phone underneath, social as small links. No form. -->
   <section class="contact" id="kontakt" aria-labelledby="contact-line">
     <div class="contact-glow" aria-hidden="true"></div>
-    <p class="contact-eyebrow mono">05 — kontakt</p>
+    <p class="contact-eyebrow mono" id="contact-eyebrow">kontakt</p>
     <h2 class="contact-line" id="contact-line">pričajmo o nečemu što <em>miriše</em>.</h2>
     <div class="contact-main">
       <a class="contact-mail" href="mailto:hello@daliah.ba" data-copy="hello@daliah.ba">
@@ -78,6 +78,6 @@
   </section>
 </main>
 
-<script type="module" src="void.js?v=16"></script>
+<script type="module" src="void.js?v=18"></script>
 </body>
 </html>

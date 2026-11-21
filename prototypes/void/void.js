@@ -37,18 +37,77 @@ const CFG = {
   loaderMin: 1500,
 };
 
+// ---------------------------------------------------------------- language (bs default; the switch reloads the page)
+const I18N = {
+  bs: {
+    title: "daliah: hook (prototip)",
+    html: {
+      tagline: "uživamo u strateškom pozicioniranju brenda, kreativnom problem-solvingu, unikatnim objavama, konceptima koji <em>mirišu</em> ekstra i komunikaciji koja ne smrdi na copy-paste.",
+      skip: 'preskoči na radove <span aria-hidden="true">↓</span>',
+      "hint-text": "skrolaj",
+      "nav-contact": "kontakt",
+      "contact-eyebrow": "kontakt",
+      "contact-line": "pričajmo o nečemu što <em>miriše</em>.",
+      "copy-mail": "kopiraj",
+    },
+    copy: "kopiraj", copied: "kopirano", grid: "radovi", about: "o nama", other: "EN",
+    tags: { pv: "foto-video", social: "integrisane · social", design: "integrisane · dizajn", web: "integrisane · web" },
+    all: ["svi", "radovi"],
+  },
+  en: {
+    title: "daliah: hook (prototype)",
+    html: {
+      tagline: "we love strategic brand positioning, creative problem-solving, one-of-a-kind posts, concepts that <em>smell</em> extra good and communication that doesn't stink of copy-paste.",
+      skip: 'skip to the work <span aria-hidden="true">↓</span>',
+      "hint-text": "scroll",
+      "nav-contact": "contact",
+      "contact-eyebrow": "contact",
+      "contact-line": "let's talk about something that <em>smells</em> good.",
+      "copy-mail": "copy",
+    },
+    copy: "copy", copied: "copied", grid: "work", about: "about us", other: "BS",
+    tags: { pv: "photo-video", social: "integrated · social", design: "integrated · design", web: "integrated · web" },
+    all: ["all", "work"],
+  },
+};
+const LANG = (() => {
+  try {
+    const q = new URLSearchParams(location.search).get("lang");
+    if (q === "en" || q === "bs") { localStorage.setItem("lang", q); return q; }
+    return localStorage.getItem("lang") === "en" ? "en" : "bs";
+  } catch { return "bs"; }
+})();
+const T = I18N[LANG];
+document.documentElement.lang = LANG;
+document.title = T.title;
+for (const [id, html] of Object.entries(T.html)) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
+document.getElementById("grid-ui")?.setAttribute("aria-label", T.grid);
+const langBtn = document.getElementById("lang");
+if (langBtn) {
+  langBtn.textContent = T.other;
+  langBtn.addEventListener("click", () => {
+    try { localStorage.setItem("lang", LANG === "en" ? "bs" : "en"); } catch {}
+    const u = new URL(location.href);
+    if (u.searchParams.has("lang")) { u.searchParams.delete("lang"); location.href = u.toString(); } else location.reload();
+  });
+}
+
+// Masonry: three columns on desktop. `col` is the column, order within a column follows this list;
+// `small` shrinks a card's width (the about card sits small in the middle). The last card links to all case studies.
 const PROJECTS = [
-  { id: "o-nama", ar: 1.5, col: 0, kind: "logo", title: "o nama", tags: "daliah →", href: "#o-nama" },
-  { id: "cupra", ar: 0.75, col: 1, img: "media/cupra1-hero.jpg", title: "Cupra", tags: "foto-video", href: "#radovi/cupra" },
-  { id: "kodeks", ar: 1.5, col: 2, img: "media/kodeks-kejs.jpg", title: "Kodeks", tags: "integrisane · social", href: "#radovi/kodeks" },
-  { id: "bash", ar: 0.75, col: 0, img: "media/bash-kejs.jpg", title: "Bash", tags: "integrisane · dizajn", href: "#radovi/bash" },
-  { id: "omg", ar: 1.5, col: 1, img: "media/omg.jpg", title: "OMG", tags: "integrisane · web", href: "#radovi/omg" },
-  { id: "mirza", ar: 0.75, col: 2, img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: "foto-video", href: "#radovi/mirza" },
+  { id: "kodeks", ar: 1.5, col: 1, img: "media/kodeks-kejs.jpg", title: "Kodeks", tags: T.tags.social, href: "#radovi/kodeks" },
+  { id: "bash", ar: 0.8, col: 0, img: "media/bash-kejs.jpg", title: "Bash", tags: T.tags.design, href: "#radovi/bash" },
+  { id: "polumaraton", ar: 1.5, col: 2, img: "media/ngo_marathon.jpg", title: "sarajevski polumaraton", tags: "", href: "#radovi/polumaraton" },
+  { id: "mirza", ar: 0.8, col: 0, img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: T.tags.pv, href: "#radovi/mirza" },
+  { id: "o-nama", ar: 1, col: 1, small: 0.6, kind: "logo", title: T.about, tags: "daliah →", href: "#o-nama" },
+  { id: "cupra", ar: 0.8, col: 2, img: "media/cupra1-hero.jpg", title: "Cupra", tags: T.tags.pv, href: "#radovi/cupra" },
+  { id: "omg", ar: 1.5, col: 1, img: "media/omg.jpg", title: "OMG", tags: T.tags.web, href: "#radovi/omg" },
+  { id: "svi", ar: 1.5, col: 2, kind: "cta", title: T.all.join(" "), tags: "", href: "#radovi-svi" },
 ];
 const CARDS = PROJECTS;
 const NC = CARDS.length;
 const GRID_N = PROJECTS.length;
-const ATLAS = { cols: 3, rows: 2, cw: 640, ch: 640 }; // each card gets a sub-rectangle of its cell, in its own aspect
+const ATLAS = { cols: 3, rows: 3, cw: 640, ch: 640 }; // each card gets a sub-rectangle of its cell, in its own aspect
 const cellSize = (c) => (c.ar >= 1 ? [ATLAS.cw, ATLAS.cw / c.ar] : [ATLAS.ch * c.ar, ATLAS.ch]);
 const FORM_DONE = CFG.explode.hold + CFG.form.delay + (NC - 1) * CFG.form.stagger + CFG.form.duration;
 
@@ -102,9 +161,9 @@ const gridUI = document.getElementById("grid-ui");
 let hovered = -1;
 const tiles = PROJECTS.map((c, i) => {
   const a = document.createElement("a");
-  a.className = "tile"; a.href = c.href;
-  const thumbBg = c.kind === "logo" ? "background-color:#efe8f1;background-image:url(media/daliah-logo.svg);background-size:38%;background-repeat:no-repeat" : `background-image:url(${c.img})`;
-  a.innerHTML = `<span class="tile-thumb" style="${thumbBg}"></span><span class="tile-meta"><span class="tile-title">${c.title}</span><span class="tile-tags mono">${c.tags}</span></span>`;
+  a.className = "tile" + (c.kind === "cta" ? " tile--cta" : ""); a.href = c.href; a.setAttribute("aria-label", c.title);
+  const thumbBg = c.kind === "logo" ? "background-color:#efe8f1;background-image:url(media/daliah-logo.svg);background-size:38%;background-repeat:no-repeat" : c.kind === "cta" ? "background-color:#2a1431" : `background-image:url(${c.img})`;
+  a.innerHTML = `<span class="tile-thumb" style="${thumbBg}"></span><span class="tile-meta"><span class="tile-title">${c.kind === "cta" ? T.all.join(" ") + " →" : c.title}</span><span class="tile-tags mono">${c.tags}</span></span>`;
   a.addEventListener("pointerenter", () => { hovered = i; });
   a.addEventListener("pointerleave", () => { if (hovered === i) hovered = -1; });
   a.addEventListener("focus", () => { hovered = i; });
@@ -231,14 +290,24 @@ function loadImage(src) {
 }
 async function buildAtlas() {
   const { cols, rows, cw, ch } = ATLAS;
+  try { await Promise.all([document.fonts.load('400 40px "Plus Jakarta Sans"'), document.fonts.load('italic 600 40px "Cormorant Garamond"')]); } catch {}
   const cv = document.createElement("canvas");
   cv.width = cols * cw; cv.height = rows * ch;
   const g = cv.getContext("2d");
   g.fillStyle = "#1d1220"; g.fillRect(0, 0, cv.width, cv.height);
-  const imgs = await Promise.all(CARDS.map((c) => loadImage(c.kind === "logo" ? "media/daliah-logo.svg" : c.img)));
+  const imgs = await Promise.all(CARDS.map((c) => (c.kind === "cta" ? Promise.resolve(null) : loadImage(c.kind === "logo" ? "media/daliah-logo.svg" : c.img))));
   CARDS.forEach((c, i) => {
     const x = (i % cols) * cw, y = Math.floor(i / cols) * ch, im = imgs[i];
     const [w0, h0] = cellSize(c);
+    if (c.kind === "cta") {
+      g.fillStyle = "#2a1431"; g.fillRect(x, y, w0, h0);
+      g.strokeStyle = "rgba(201,162,207,0.55)"; g.lineWidth = 3; g.strokeRect(x + 1.5, y + 1.5, w0 - 3, h0 - 3);
+      g.textBaseline = "alphabetic";
+      g.fillStyle = "#f6eff8"; g.font = `400 ${Math.round(h0 * 0.2)}px "Plus Jakarta Sans", sans-serif`; g.fillText(T.all[0], x + w0 * 0.08, y + h0 * 0.46);
+      g.fillStyle = "#c9a2cf"; g.font = `italic 600 ${Math.round(h0 * 0.27)}px "Cormorant Garamond", serif`; g.fillText(T.all[1], x + w0 * 0.08, y + h0 * 0.76);
+      g.fillStyle = "#f6eff8"; g.font = `400 ${Math.round(h0 * 0.2)}px "Plus Jakarta Sans", sans-serif`; g.textAlign = "right"; g.fillText("→", x + w0 * 0.92, y + h0 * 0.76); g.textAlign = "left";
+      return;
+    }
     if (c.kind === "logo") {
       g.fillStyle = "#efe8f1"; g.fillRect(x, y, w0, h0);
       if (im) { const h = h0 * 0.42, w = h * ((im.width / im.height) || 0.674); g.drawImage(im, x + (w0 - w) / 2, y + (h0 - h) / 2, w, h); }
@@ -453,23 +522,23 @@ function startGL() {
     const D = CFG.grid.distance;
     const Hv = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), Wv = Hv * aspect;
     const cols = aspect >= 1 ? 3 : 2;
-    const gap = Hv * (aspect >= 1 ? 0.02 : 0.015), label = Hv * (aspect >= 1 ? 0.05 : 0.04);
-    const areaW = Wv * (aspect >= 1 ? 0.94 : 0.95), areaH = Hv * (aspect >= 1 ? 0.82 : 0.8);
+    const gap = Hv * 0.016, label = Hv * (aspect >= 1 ? 0.042 : 0.04);
+    const areaW = Wv * (aspect >= 1 ? 0.94 : 0.95), areaH = Hv * (aspect >= 1 ? 0.87 : 0.82);
     // desktop: the columns set in PROJECTS; phone: each card goes to the shorter column
     const colOf = [], sum = new Array(cols).fill(0), count = new Array(cols).fill(0);
     PROJECTS.forEach((p, i) => {
       const c = cols === 3 ? p.col : (sum[0] <= sum[1] ? 0 : 1);
-      colOf[i] = c; sum[c] += 1 / p.ar; count[c]++;
+      colOf[i] = c; sum[c] += (p.small || 1) / p.ar; count[c]++;
     });
     const fixed = (c) => (count[c] - 1) * (gap + label) + label;
     let cw = (areaW - (cols - 1) * gap) / cols;
     for (let c = 0; c < cols; c++) if (count[c]) cw = Math.min(cw, (areaH - fixed(c)) / sum[c]);
     const colH = sum.map((sm, c) => cw * sm + fixed(c));
     const totalW = cols * cw + (cols - 1) * gap, totalH = Math.max(...colH);
-    const y = new Array(cols).fill(0);
+    const y = colH.map((h) => (cols === 3 ? (totalH - h) / 2 : 0)); // desktop: each column centred, so a shorter one sits inset
     cards.forEach((card, i) => {
-      const c = colOf[i], h = cw / PROJECTS[i].ar;
-      card.gsize.set(cw, h);
+      const c = colOf[i], w = cw * (PROJECTS[i].small || 1), h = w / PROJECTS[i].ar;
+      card.gsize.set(w, h);
       card.grid.set(-totalW / 2 + cw / 2 + c * (cw + gap), totalH / 2 - y[c] - h / 2 - Hv * 0.01, restCam.z - D);
       y[c] += h + gap + label;
     });
@@ -536,11 +605,12 @@ function startGL() {
   });
 
   // ---------- shards: the tagline as particles; blast, then they become the cards
+  const areaW8 = PROJECTS.map((p) => { const w = p.small || 1; return (w * w) / p.ar; }), areaSum = areaW8.reduce((a, b) => a + b, 0);
   const shardCount = isPhone ? CFG.shards.phone : CFG.shards.desktop;
   const sText = new Float32Array(shardCount * 3), sDir = new Float32Array(shardCount * 3);
   const sCard = new Float32Array(shardCount * 4), sSeed = new Float32Array(shardCount * 4);
   for (let i = 0; i < shardCount; i++) {
-    const ci = Math.floor(Math.random() * NC);
+    let ci = 0; for (let w = Math.random() * areaSum; ci < NC - 1 && (w -= areaW8[ci]) > 0; ci++);
     let u = Math.random(), v = Math.random();
     let tag = 0; // 0 = fills the inside; 1 + t = traces the outline, t = position around it
     if (Math.random() < 0.35) {
@@ -696,17 +766,22 @@ function startGL() {
   const titleMat = new THREE.ShaderMaterial({
     transparent: true, depthTest: false, depthWrite: false,
     blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor,
-    uniforms: { uT: { value: 0 }, uVis: { value: 0 }, uTime: { value: 0 }, uDpr: { value: 1 }, uX0: { value: 0 }, uXW: { value: 1 } },
+    uniforms: { uT: { value: 0 }, uVis: { value: 0 }, uTime: { value: 0 }, uDpr: { value: 1 }, uX0: { value: 0 }, uXW: { value: 1 }, uC: { value: new THREE.Vector2() } },
     vertexShader: /* glsl */ `
       attribute vec4 aSeed;
       uniform float uT, uVis, uTime, uDpr, uX0, uXW;
+      uniform vec2 uC;
       varying float vA, vM;
       void main(){
         float sweep = (position.x - uX0) / uXW;
         float start = aSeed.w * 0.5 + sweep * 0.2;           // a ragged front, drifting left to right
         float t = clamp((uT - start) / 0.5, 0.0, 1.0);
         float e = 1.0 - pow(1.0 - t, 3.0);
-        vec3 dir = vec3((aSeed.x - 0.5) * 1.6 + 0.35, 0.3 + aSeed.y * 1.4, (aSeed.z - 0.35) * 3.0);
+        // every direction: half outward from the middle of the word, half a random spray; some fly at the lens
+        vec2 rad = normalize(position.xy - uC + (aSeed.xy - 0.5) * 0.3 + 1e-4);
+        float th = aSeed.x * 6.2832 + aSeed.w * 40.0;
+        vec2 rd = mix(rad, vec2(cos(th), sin(th)), 0.55);
+        vec3 dir = vec3(rd * (0.5 + aSeed.y * 1.3), (aSeed.z - 0.4) * 3.0);
         vec3 p = position + dir * e * 1.2;
         p.x += sin(uTime * 1.3 + aSeed.y * 6.28 + p.y * 2.0) * 0.06 * e;
         p.y += cos(uTime * 1.1 + aSeed.x * 6.28) * 0.04 * e;
@@ -748,7 +823,7 @@ function startGL() {
     const cam = camera.clone();
     cam.position.set(0, 0, CFG.camera.z); cam.rotation.set(0, 0, 0); cam.updateMatrixWorld(true);
     const v = new THREE.Vector3(), D = CFG.explode.textDist;
-    let x0 = 1e9, x1 = -1e9;
+    let x0 = 1e9, x1 = -1e9, cx = 0, cy = 0;
     for (let i = 0; i < titleCount; i++) {
       const k = Math.floor(Math.random() * (pts.length / 2)) * 2;
       const sx = pts[k] + Math.random() - 0.5, sy = pts[k + 1] + Math.random() - 0.5;
@@ -756,8 +831,9 @@ function startGL() {
       v.multiplyScalar(D / -v.z).add(cam.position);
       v.sub(cam.position); // view space: the particles ride with the screen, not the world
       tPos[i * 3] = v.x; tPos[i * 3 + 1] = v.y; tPos[i * 3 + 2] = v.z;
-      x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x);
+      x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); cx += v.x; cy += v.y;
     }
+    titleMat.uniforms.uC.value.set(cx / titleCount, cy / titleCount);
     titleMat.uniforms.uX0.value = x0; titleMat.uniforms.uXW.value = Math.max(0.001, x1 - x0);
     titleGeo.attributes.position.needsUpdate = true;
     titleParticles = true;
@@ -970,6 +1046,7 @@ function startGL() {
         const t = tiles[i];
         t.style.transform = `translate3d(${x0.toFixed(1)}px, ${y0.toFixed(1)}px, 0)`;
         t.style.width = `${(x1 - x0).toFixed(1)}px`; t.style.height = `${(y1 - y0).toFixed(1)}px`;
+        t.classList.toggle("is-narrow", x1 - x0 < 210);
       }
     }
 
@@ -1029,8 +1106,8 @@ function startGL() {
   if (!btn || !mail) return;
   let t;
   btn.addEventListener("click", async () => {
-    try { await navigator.clipboard.writeText(mail.dataset.copy); btn.textContent = "kopirano"; }
+    try { await navigator.clipboard.writeText(mail.dataset.copy); btn.textContent = T.copied; }
     catch { btn.textContent = mail.dataset.copy; }
-    clearTimeout(t); t = setTimeout(() => { btn.textContent = "kopiraj"; }, 1800);
+    clearTimeout(t); t = setTimeout(() => { btn.textContent = T.copy; }, 1800);
   });
 })();
