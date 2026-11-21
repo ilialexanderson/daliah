@@ -50,7 +50,11 @@ main { padding: 0 var(--gutter); max-width: 1680px; margin: 0 auto; }
   transition: transform .8s cubic-bezier(.2, .8, .2, 1), opacity .5s ease; }
 .grid.init .tile { transition: none; }
 .tile.is-hidden { opacity: 0; pointer-events: none; }
-.thumb { position: relative; overflow: hidden; display: block; width: 100%; background: #1d1220; outline: 1px solid var(--hair); outline-offset: -1px; }
+.tw { position: relative; display: block; width: 100%; transform-style: preserve-3d; will-change: transform; }
+.thumb { position: relative; overflow: hidden; display: block; width: 100%; height: 100%; background: #1d1220; }
+/* ghost frame, as on the hook: a faint outline a little inside or outside the photo */
+.fr { position: absolute; z-index: 2; pointer-events: none; border: 1px solid rgba(246, 239, 248, .4); transition: border-color .5s ease; }
+.tile:hover .fr, .tile:focus-visible .fr { border-color: rgba(246, 239, 248, .75); }
 .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; filter: saturate(.86) contrast(1.03) brightness(.97); transform: scale(1.001);
   transition: filter .6s ease, transform 1.1s cubic-bezier(.2, .8, .2, 1); }
 /* the grade: a purple wash in the shadows and a little grain, so every photo sits in the same fog */

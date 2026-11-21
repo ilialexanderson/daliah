@@ -35,8 +35,8 @@ try { const h = decodeURIComponent(location.hash.slice(1)); if (FILTERS.includes
 const grid = $("grid"), filters = $("filters");
 const tiles = WORK.map((w) => {
   const a = document.createElement("a");
-  a.className = "tile"; a.href = "#" + w.slug; a.dataset.slug = w.slug;
-  a.innerHTML = `<span class="thumb" style="aspect-ratio:${w.ar}"><img src="${w.img}" alt="${w.title}" loading="lazy" decoding="async"></span>` +
+  a.className = "tile"; a.href = `../projekat/${w.slug}/`; a.dataset.slug = w.slug;
+  a.innerHTML = `<span class="tw" style="aspect-ratio:${w.ar}"><span class="thumb"><img src="${w.img}" alt="${w.title}" loading="lazy" decoding="async"></span><span class="fr" aria-hidden="true"></span></span>` +
     `<span class="meta"><span class="name">${w.title}</span><span class="sub mono">${[w.client, w.year].filter(Boolean).join(" · ")}</span><span class="tags mono">${w.tags.map((t) => T.tags[t]).join(" · ")}</span></span>`;
   grid.appendChild(a);
   return { w, el: a, pos: null };
@@ -69,6 +69,38 @@ function layout() {
     y[c] += h + gap;
   }
   grid.style.height = Math.max(0, Math.max(...y) - gap) + "px";
+  sizeFrames();
+}
+
+// Ghost frames: each side randomly a little inside or outside the photo, the same on every visit.
+let seed = 77;
+const rnd = () => { seed = (seed + 0x6d2b79f5) >>> 0; let t = seed; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+tiles.forEach((t) => { t.sides = [0, 1, 2, 3].map(() => (rnd() < 0.5 ? -1 : 1) * (0.25 + rnd() * 0.75)); t.tw = t.el.querySelector(".tw"); t.fr = t.el.querySelector(".fr"); t.x = t.y = t.tx = t.ty = 0; });
+function sizeFrames() {
+  for (const t of tiles) {
+    const w = t.tw.offsetWidth, h = t.tw.offsetHeight, m = Math.min(28, Math.max(7, Math.min(w, h) * 0.05));
+    const [l, r, tp, b] = t.sides.map((s) => (s * m).toFixed(1) + "px");
+    t.fr.style.cssText = `left:${l};right:${r};top:${tp};bottom:${b}`;
+  }
+}
+
+// Cursor: the photo leans toward the pointer and its frame drifts the other way, like the cards on the hook.
+const fine = matchMedia("(pointer: fine)").matches && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+if (fine) {
+  tiles.forEach((t) => {
+    t.el.addEventListener("pointermove", (e) => { const r = t.tw.getBoundingClientRect(); t.tx = ((e.clientX - r.left) / r.width - 0.5) * 2; t.ty = ((e.clientY - r.top) / r.height - 0.5) * 2; });
+    t.el.addEventListener("pointerleave", () => { t.tx = 0; t.ty = 0; });
+  });
+  const tick = () => {
+    for (const t of tiles) {
+      t.x += (t.tx - t.x) * 0.1; t.y += (t.ty - t.y) * 0.1;
+      if (Math.abs(t.x) + Math.abs(t.y) < 0.001 && !t.tx && !t.ty) { if (t.tw.style.transform) { t.tw.style.transform = ""; t.fr.style.translate = ""; } continue; }
+      t.tw.style.transform = `perspective(1200px) rotateY(${(t.x * 5).toFixed(2)}deg) rotateX(${(-t.y * 5).toFixed(2)}deg) translateZ(${((Math.abs(t.tx) + Math.abs(t.ty) > 0 ? 1 : 0) * 14).toFixed(0)}px)`;
+      t.fr.style.translate = `${(-t.x * 9).toFixed(1)}px ${(-t.y * 9).toFixed(1)}px 30px`;
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 }
 function render() {
   chips.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.f === active)));

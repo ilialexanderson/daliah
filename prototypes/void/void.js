@@ -98,13 +98,13 @@ if (langBtn) {
 // Masonry: three columns on desktop. `col` is the column, order within a column follows this list;
 // `small` shrinks a card's width (the about card sits small in the middle). The last card links to all case studies.
 const PROJECTS = [
-  { id: "kodeks", ar: 1.5, col: 1, img: "media/kodeks-kejs.jpg", title: "Kodeks", tags: T.tags.social, href: "#radovi/kodeks" },
-  { id: "bash", ar: 0.8, col: 0, img: "media/bash-kejs.jpg", title: "Bash", tags: T.tags.design, href: "#radovi/bash" },
-  { id: "polumaraton", ar: 1.5, col: 2, img: "media/ngo_marathon.jpg", title: T.polu, tags: "", href: "#radovi/polumaraton" },
-  { id: "mirza", ar: 0.8, col: 0, img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: T.tags.pv, href: "#radovi/mirza" },
+  { id: "kodeks", ar: 1.5, col: 1, img: "media/kodeks-kejs.jpg", title: "Kodeks", tags: T.tags.social, href: "projekat/kodeks/" },
+  { id: "bash", ar: 0.8, col: 0, img: "media/bash-kejs.jpg", title: "Bash", tags: T.tags.design, href: "projekat/bash/" },
+  { id: "polumaraton", ar: 1.5, col: 2, img: "media/ngo_marathon.jpg", title: T.polu, tags: "", href: "radovi/" },
+  { id: "mirza", ar: 0.8, col: 0, img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: T.tags.pv, href: "projekat/mirza/" },
   { id: "o-nama", ar: 1, col: 1, small: 0.6, kind: "logo", title: T.about, tags: "daliah →", href: "#o-nama" },
-  { id: "cupra", ar: 0.8, col: 2, img: "media/cupra1-hero.jpg", title: "Cupra", tags: T.tags.pv, href: "#radovi/cupra" },
-  { id: "omg", ar: 1.5, col: 1, img: "media/omg.jpg", title: "OMG", tags: T.tags.web, href: "#radovi/omg" },
+  { id: "cupra", ar: 0.8, col: 2, img: "media/cupra1-hero.jpg", title: "Cupra", tags: T.tags.pv, href: "projekat/cupra/" },
+  { id: "omg", ar: 1.5, col: 1, img: "media/omg.jpg", title: "OMG", tags: T.tags.web, href: "projekat/omg/" },
   { id: "svi", ar: 1.5, col: 2, kind: "cta", title: T.all.join(" "), tags: "", href: "radovi/" },
 ];
 const CARDS = PROJECTS;
