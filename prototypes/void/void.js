@@ -1,9 +1,9 @@
 // Hook preview, phases 1-5:
 //   DALIAH -> tagline out of the fog -> napetost -> explosion into particles
-//   -> particles form the project cards (3D chaos, depth blur) -> cards settle into the grid.
-// Layers: half-res fog with light shafts -> cards (textured planes, depth blur)
-// -> dust + shard particles (GPU points, depth of field) -> post (grain, vignette,
-// reveal, explosion flash, cursor displacement). Text and grid links are HTML.
+//   -> the particles fly straight into the grid and build each card where they land.
+// Layers: half-res fog with light shafts -> cards (textured planes, revealed where their
+// particles have landed) -> dust + shard particles (GPU points, depth of field)
+// -> post (grain, vignette, reveal, explosion flash, cursor displacement). Text and links are HTML.
 import * as THREE from "./vendor/three.module.js";
 
 // ---------------------------------------------------------------- config
@@ -16,13 +16,13 @@ const CFG = {
   focus: { from: 17, to: 7.2 },
   scrollDamp: 0.085,
   grain: 0.075,
-  // timeline, as fractions of the hook scroll
-  title: { out: 0.03 },
-  text: { start: 0.045, span: 0.22, word: 0.035, blur: 10 },
-  tension: { start: 0.33, end: 0.44 },
-  explode: { at: 0.44, textDist: 6.3, seconds: 1.6, hold: 0.24 }, // hold: seconds the text holds as particles
-  form: { start: 0.49, end: 0.68 },
-  settle: { start: 0.8, end: 0.96 },
+  // timeline, as fractions of the hook scroll (5 screens)
+  title: { out: 0.04 },
+  text: { start: 0.07, span: 0.4, word: 0.06, blur: 10 },
+  tension: { start: 0.58, end: 0.84 },
+  explode: { at: 0.84, textDist: 6.3, hold: 0.24 }, // hold: seconds the text holds as particles
+  // after the blast everything runs on time, not scroll: all cards built within ~2.3 s
+  form: { delay: 0.0, stagger: 0.12, duration: 1.4 },
   grid: { distance: 9 },
   // cursor layer: phases 4-5 and the grid only; off on touch and reduced motion
   cursor: {
@@ -44,13 +44,11 @@ const PROJECTS = [
   { id: "omg", img: "media/omg.jpg", title: "OMG", tags: "integrisane · web", href: "#radovi/omg" },
   { id: "mirza", img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: "foto-video", href: "#radovi/mirza" },
 ];
-// extra frames that only tumble in the chaos, then fall back into the dark
-const EXTRAS = ["cupra3-neretva", "cupra4-grad-pokret", "bash2", "kdk_ig_2", "mirza3", "omg3-ritual-leg", "omg2-range-three", "ngo_marathon"]
-  .map((n) => ({ img: `media/${n}.jpg`, extra: true }));
-const CARDS = [...PROJECTS, ...EXTRAS];
-const NC = CARDS.length; // 14
+const CARDS = PROJECTS;
+const NC = CARDS.length;
 const GRID_N = PROJECTS.length;
-const ATLAS = { cols: 4, rows: 4, cw: 400, ch: 500 };
+const ATLAS = { cols: 3, rows: 2, cw: 480, ch: 600 };
+const FORM_DONE = CFG.explode.hold + CFG.form.delay + (NC - 1) * CFG.form.stagger + CFG.form.duration;
 
 const body = document.body;
 const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -63,10 +61,20 @@ function mulberry(a) { return () => { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = 
 
 // ---------------------------------------------------------------- title + tagline -> spans
 const titleEl = document.getElementById("title");
-const letters = [...titleEl.textContent].map((c) => {
-  const s = document.createElement("span"); s.className = "l"; s.textContent = c; s.setAttribute("aria-hidden", "true"); return s;
+const VB = { x: 4.31, y: 868.41, w: 660.46, h: 117.9 };
+const LETTER_X = [[4.31, 122.9], [126.23, 258.43], [270.72, 356.94], [372.43, 399.88], [412.17, 544.37], [556.66, 664.77]];
+const letterBox = document.createElement("span");
+letterBox.className = "letters"; letterBox.setAttribute("aria-hidden", "true");
+const letters = [...titleEl.querySelectorAll(".wordmark path")].map((path, i) => {
+  const [x0, x1] = LETTER_X[i];
+  const l = document.createElement("span");
+  l.className = "l";
+  l.style.cssText = `left:${((x0 - VB.x) / VB.w) * 100}%;width:${((x1 - x0) / VB.w) * 100}%;top:0;height:100%`;
+  l.innerHTML = `<svg viewBox="${x0} ${VB.y} ${x1 - x0} ${VB.h}" preserveAspectRatio="none">${path.outerHTML}</svg>`;
+  letterBox.appendChild(l);
+  return l;
 });
-titleEl.textContent = ""; letters.forEach((l) => titleEl.appendChild(l));
+titleEl.appendChild(letterBox);
 
 const tagline = document.getElementById("tagline");
 const words = [];
@@ -102,15 +110,6 @@ const tiles = PROJECTS.map((c, i) => {
   gridUI.appendChild(a);
   return a;
 });
-
-// ---------------------------------------------------------------- type switch (preview only)
-document.querySelectorAll(".type-switch button").forEach((b) => b.addEventListener("click", () => setType(b.dataset.type)));
-addEventListener("keydown", (e) => { if (e.key === "t" && !e.metaKey && !e.ctrlKey) setType(body.classList.contains("type-a") ? "b" : "a"); });
-function setType(t) {
-  body.classList.toggle("type-a", t === "a");
-  body.classList.toggle("type-b", t === "b");
-  document.querySelectorAll(".type-switch button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.type === t)));
-}
 
 // ---------------------------------------------------------------- sound (off by default)
 const sound = (() => {
@@ -208,20 +207,14 @@ function setChapter(word, num) {
     chapterWord.classList.remove("is-in");
   }, 420);
 }
-function chapterFor(p) {
-  if (p < CFG.tension.start) return ["praznina", "01"];
-  if (p < CFG.explode.at) return ["napetost", "02"];
-  if (p < CFG.form.start + 0.02) return ["eksplozija", "03"];
-  if (p < CFG.settle.start) return ["haos", "04"];
-  return ["radovi", "05"];
-}
+const CHAPTERS = { praznina: "01", napetost: "02", eksplozija: "03", radovi: "04" };
 
 // ---------------------------------------------------------------- DOM per frame
 const progressNum = document.getElementById("progress-num");
 const progressFill = document.getElementById("progress-fill");
 let lastJitter = 0, jx = 0, jy = 0;
 
-function updateDOM(p, now, introT, exploded) {
+function updateDOM(p, now, introT, exploded, chapterName) {
   // DALIAH: letters arrive after the loader, and lift off into the fog on the first scroll
   const nL = letters.length;
   for (let i = 0; i < nL; i++) {
@@ -261,8 +254,7 @@ function updateDOM(p, now, introT, exploded) {
   tagline.style.color = k > 0.001 ? `rgba(${232 + 20 * k | 0}, ${222 + 26 * k | 0}, ${236 + 16 * k | 0}, ${0.9 + 0.1 * k})` : "";
   sound.setTension(k);
 
-  const [word, num] = chapterFor(p);
-  setChapter(word, num);
+  setChapter(chapterName, CHAPTERS[chapterName]);
   progressNum.textContent = String(Math.round(p * 100)).padStart(3, "0");
   progressFill.style.transform = `scaleX(${p.toFixed(4)})`;
 }
@@ -500,22 +492,29 @@ function startGL() {
   dust.frustumCulled = false; dust.renderOrder = 9000;
   scene.add(dust);
 
-  // ---------- cards: poses (chaos -> grid), meshes, uniforms shared with the shards
+  // ---------- cards: built in place in the grid, revealed where their particles land
+  const landedChunk = /* glsl */ `
+    // where on a card a particle lands first: mostly noise, swept a little from the top.
+    // the card shader uses the same function, so the image appears exactly where particles land
+    float h21(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
+    float vn2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+      return mix(mix(h21(i), h21(i + vec2(1,0)), f.x), mix(h21(i + vec2(0,1)), h21(i + vec2(1,1)), f.x), f.y); }
+    float landed(float prog, vec2 uv){
+      float o = clamp(vn2(uv * 11.0 + 3.7) * 0.35 + h21(floor(uv * vec2(96.0, 120.0))) * 0.35 + (1.0 - uv.y) * 0.3, 0.0, 1.0);
+      return clamp((prog - o * 0.5) / 0.5, 0.0, 1.0);
+    }`;
   const rnd = mulberry(1203);
   const cards = CARDS.map((c, i) => {
     const r = (a, b) => a + rnd() * (b - a);
     const col = i % ATLAS.cols, row = Math.floor(i / ATLAS.cols);
     return {
       ...c, i,
-      scale: c.extra ? r(0.6, 1.15) : 1,
-      chaos: new THREE.Vector3(r(-6.5, 6.5), r(-3.6, 3.6), c.extra ? r(-15, -1) : r(-10, 0.5)),
-      rot0: new THREE.Vector3(r(-0.9, 0.9), r(-1.2, 1.2), r(-0.6, 0.6)),
-      spin: new THREE.Vector3(r(-0.12, 0.12), r(-0.16, 0.16), r(-0.07, 0.07)),
-      phase: r(0, 6.28),
+      rot0: new THREE.Vector3(r(-0.45, 0.45), r(-0.6, 0.6), r(-0.18, 0.18)), // the tilt it forms at
+      zOff: -r(1.4, 2.6),                                                    // and how far back
       grid: new THREE.Vector3(),
       cell: new THREE.Vector4(col / ATLAS.cols, 1 - (row + 1) / ATLAS.rows, 1 / ATLAS.cols, 1 / ATLAS.rows),
       pos: new THREE.Vector3(), quat: new THREE.Quaternion(), size: new THREE.Vector2(1, 1.25),
-      alpha: 0, hover: 0, dist: 10,
+      prog: 0, hover: 0,
     };
   });
   let cardW = 1.6, cardH = 2.0;
@@ -540,6 +539,7 @@ function startGL() {
   const cardUniformsM = cards.map(() => new THREE.Matrix4());
   const cardUniformsS = cards.map(() => new THREE.Vector2(1, 1));
   const cardUniformsCell = cards.map((c) => c.cell);
+  const cardUniformsP = cards.map(() => 0);
   const atlasRef = { value: null };
   const mouseUniforms = { uMouse: { value: new THREE.Vector2(-9999, -9999) }, uRes: { value: new THREE.Vector2(1, 1) } };
 
@@ -550,28 +550,33 @@ function startGL() {
     varying vec2 vUv;
     uniform sampler2D uAtlas;
     uniform vec4 uCell;
-    uniform float uAlpha, uBlur, uHover, uDim, uLightAmt, uLightR;
+    uniform float uProg, uBlur, uHover, uDim, uLightAmt, uLightR;
     uniform vec2 uMouse, uRes;
+    ${landedChunk}
     void main(){
       vec2 uv = vUv;
+      float l = landed(uProg, uv);
+      float rev = smoothstep(0.93, 1.0, l);                       // image only where particles have landed
+      float front = smoothstep(0.7, 0.95, l) * (1.0 - rev);       // a faint glow just ahead of them
+      if (rev + front < 0.002) discard;
       vec3 c = vec3(0.0);
       float rad = uBlur * 0.065;
-      for (int i = 0; i < 12; i++){
+      for (int i = 0; i < 8; i++){
         float fi = float(i);
         float a = fi * 2.39996;
-        vec2 o = vec2(cos(a), sin(a) * 0.8) * sqrt((fi + 0.5) / 12.0) * rad;
+        vec2 o = vec2(cos(a), sin(a) * 0.8) * sqrt((fi + 0.5) / 8.0) * rad;
         vec2 u = clamp(uv + o, 0.004, 0.996);
         c += texture2D(uAtlas, uCell.xy + u * uCell.zw, uBlur * 3.5).rgb;
       }
-      c /= 12.0;
+      c /= 8.0;
       c *= uDim * (1.0 + uHover * 0.1);
-      // hairline edge, lifted on hover
       float edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
       c = mix(c, vec3(0.95, 0.9, 0.97), (1.0 - smoothstep(0.0, 0.006, edge)) * (0.18 + uHover * 0.5) * (1.0 - uBlur));
-      // soft light under the cursor
       vec2 d = (gl_FragCoord.xy - uMouse) / uRes.y;
       c += vec3(0.62, 0.5, 0.7) * exp(-dot(d, d) / (uLightR * uLightR)) * uLightAmt;
-      float a = uAlpha * smoothstep(0.0, 0.004 + uBlur * 0.05, edge);
+      vec3 glow = vec3(0.86, 0.74, 0.94);
+      c = mix(glow, c, rev);
+      float a = (rev + front * 0.16) * smoothstep(0.0, 0.004 + uBlur * 0.05, edge);
       gl_FragColor = vec4(c, a);
     }`;
   cards.forEach((c) => {
@@ -579,7 +584,7 @@ function startGL() {
       transparent: true, depthTest: false, depthWrite: false,
       vertexShader: cardVert, fragmentShader: cardFrag,
       uniforms: {
-        uAtlas: atlasRef, uCell: { value: c.cell }, uAlpha: { value: 0 }, uBlur: { value: 0 }, uHover: { value: 0 }, uDim: { value: 1 },
+        uAtlas: atlasRef, uCell: { value: c.cell }, uProg: { value: 0 }, uBlur: { value: 0 }, uHover: { value: 0 }, uDim: { value: 1 },
         uLightAmt: { value: 0 }, uLightR: { value: CFG.cursor.lightRadius }, ...mouseUniforms,
       },
     });
@@ -596,7 +601,7 @@ function startGL() {
   for (let i = 0; i < shardCount; i++) {
     const ci = Math.floor(Math.random() * NC);
     let u = Math.random(), v = Math.random();
-    if (Math.random() < 0.38) { // trace the outline so the card shapes read before the image does
+    if (Math.random() < 0.22) { // trace the outline so the card shapes read before the image does
       const side = Math.floor(Math.random() * 4);
       if (side === 0) v = 0; else if (side === 1) v = 1; else if (side === 2) u = 0; else u = 1;
     }
@@ -614,13 +619,14 @@ function startGL() {
     defines: { NC, HOLD: CFG.explode.hold.toFixed(3) },
     uniforms: {
       uTime: { value: 0 }, uFocus: { value: 7 }, uPx: { value: 1000 }, uVis: { value: 0 },
-      uBurstT: { value: 0 }, uForm: { value: 0 }, uAtlas: atlasRef,
+      uBurstT: { value: 0 }, uAtlas: atlasRef, uCardP: { value: cardUniformsP },
       uCardM: { value: cardUniformsM }, uCardS: { value: cardUniformsS }, uCardCell: { value: cardUniformsCell },
     },
     vertexShader: /* glsl */ `
       attribute vec3 aDir;
       attribute vec4 aCard, aSeed;
-      uniform float uTime, uFocus, uPx, uVis, uBurstT, uForm;
+      uniform float uTime, uFocus, uPx, uVis, uBurstT;
+      uniform float uCardP[NC];
       uniform mat4 uCardM[NC];
       uniform vec2 uCardS[NC];
       uniform vec4 uCardCell[NC];
@@ -628,21 +634,22 @@ function startGL() {
       varying float vAlpha, vCoc;
       varying vec3 vCol;
       ${dofChunk}
+      ${landedChunk}
       void main(){
         // hold: the text shivers in place for a beat, then the blast (fast out, heavy drag, slow drift)
         float bt = max(0.0, uBurstT - HOLD);
-        float e = 1.0 - exp(-bt * 2.1);
+        float e = 1.0 - exp(-bt * 3.4);
         float shiver = (1.0 - step(HOLD, uBurstT)) * 0.012 * uBurstT / HOLD;
         vec3 b = position + aDir * e + shiver * vec3(sin(uTime * 83.0 + aSeed.x * 50.0), cos(uTime * 71.0 + aSeed.y * 50.0), 0.0);
         float tt = uTime * 0.35;
-        b += vec3(sin(tt + aSeed.x * 6.28 + b.y * 0.3), cos(tt * 0.8 + aSeed.y * 6.28 + b.x * 0.3), sin(tt * 0.6 + aSeed.z * 6.28)) * 0.45 * e;
+        b += vec3(sin(tt + aSeed.x * 6.28 + b.y * 0.3), cos(tt * 0.8 + aSeed.y * 6.28 + b.x * 0.3), sin(tt * 0.6 + aSeed.z * 6.28)) * 0.18 * e;
 
-        // form: each particle flies to its spot on a card, staggered, on a curved path
+        // build: each particle flies straight to its spot on its card
         int ci = int(aCard.x + 0.5);
         vec3 tgt = (uCardM[ci] * vec4((aCard.yz - 0.5) * uCardS[ci], 0.0, 1.0)).xyz;
-        float f = clamp((uForm - aSeed.w * 0.4) / 0.6, 0.0, 1.0);
-        f = f * f * (3.0 - 2.0 * f);
-        vec3 p = mix(b, tgt, f) + (aSeed.xyz - 0.5) * 3.0 * sin(f * 3.14159);
+        float l = landed(uCardP[ci], aCard.yz);
+        float f = l * l * (3.0 - 2.0 * l);
+        vec3 p = mix(b, tgt, f) + (aSeed.xyz - 0.5) * 1.2 * sin(f * 3.14159);
 
         vec4 mv = modelViewMatrix * vec4(p, 1.0);
         float z = max(0.05, -mv.z);
@@ -661,7 +668,7 @@ function startGL() {
         float energy = (sharp * sharp) / (size * size);
         float flash = 1.0 + 1.6 * exp(-bt * 4.0);
         float depthFade = smoothstep(46.0, 16.0, z) * smoothstep(0.2, 1.0, z);
-        float handoff = 1.0 - smoothstep(0.8, 1.0, uForm);   // the card plane takes over
+        float handoff = 1.0 - smoothstep(0.9, 1.0, l);       // landed: the card's pixel takes over
         vAlpha = uVis * depthFade * flash * handoff * clamp(energy + 0.05 * coc, 0.0, 1.0) * (0.55 + 0.45 * aSeed.z);
         vCoc = coc;
       }`,
@@ -719,12 +726,12 @@ function startGL() {
     c.multiplyScalar(1 / shardCount);
     for (let i = 0; i < shardCount; i++) {
       const dx = sText[i * 3] - c.x, dy = sText[i * 3 + 1] - c.y;
-      const s = 0.6 + Math.random() * 1.9;
+      const s = 0.2 + Math.random() * 0.45;
       // radial blast, plus a random spherical kick; some particles fly at the lens
-      const th = Math.random() * Math.PI * 2, ph = Math.acos(Math.random() * 2 - 1), m = 0.8 + Math.pow(Math.random(), 2) * 4.5;
+      const th = Math.random() * Math.PI * 2, ph = Math.acos(Math.random() * 2 - 1), m = 0.25 + Math.pow(Math.random(), 2) * 1.2;
       sDir[i * 3] = dx * s + Math.sin(ph) * Math.cos(th) * m * 1.4;
-      sDir[i * 3 + 1] = dy * s * 2.2 + Math.sin(ph) * Math.sin(th) * m;
-      sDir[i * 3 + 2] = Math.cos(ph) * m * 1.6 + (Math.random() - 0.45) * 5;
+      sDir[i * 3 + 1] = dy * s * 1.8 + Math.sin(ph) * Math.sin(th) * m;
+      sDir[i * 3 + 2] = Math.cos(ph) * m + (Math.random() - 0.5) * 1.2;
     }
     shardGeo.attributes.position.needsUpdate = true;
     shardGeo.attributes.aDir.needsUpdate = true;
@@ -828,7 +835,24 @@ function startGL() {
   const corners = [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]];
   let exploded = false, burstT0 = 0, flash = 0;
 
+  // camera: dolly into the fog until the blast, then it holds on the grid with a little parallax
+  function updateCamera(k, pre, built) {
+    const T = state.time;
+    const mouseAmt = CFG.camera.mouse * pre + CFG.cursor.parallax * (1 - pre) * (1 - built * 0.6);
+    const shake = k * k * 0.018 * pre + flash * 0.05;
+    camera.position.set(
+      state.smx * mouseAmt + Math.sin(T * 0.11) * 0.15 * pre + (Math.random() - 0.5) * shake,
+      -state.smy * mouseAmt * 0.6 + Math.cos(T * 0.09) * 0.1 * pre + (Math.random() - 0.5) * shake,
+      CFG.camera.z - Math.min(1, state.scroll / CFG.explode.at) * CFG.camera.dolly,
+    );
+    lookAt.set(state.smx * (0.25 * pre + 0.08 * (1 - pre)), -state.smy * (0.15 * pre + 0.05 * (1 - pre)), camera.position.z - 20);
+    camera.lookAt(lookAt);
+    camera.rotation.z += Math.sin(T * 0.07) * 0.012 * pre;
+    camera.updateMatrixWorld();
+  }
+
   function frame(now, forcedDt) {
+    if (window.__hook?.paused && forcedDt == null) return requestAnimationFrame(frame);
     const dt = forcedDt ?? Math.min(clock.getDelta(), 0.05);
     state.time += dt;
     state.scroll += (state.scrollTarget - state.scroll) * (1 - Math.pow(1 - CFG.scrollDamp, dt * 60));
@@ -844,88 +868,69 @@ function startGL() {
     const reveal = revealStart ? Math.min(1, (now - revealStart) / 2400) : 0;
     const easedReveal = 1 - Math.pow(1 - reveal, 3);
     const introT = revealStart ? (now - revealStart) / 1000 : 0;
-    const form = smooth(CFG.form.start, CFG.form.end, p);
-    const settle = smooth(CFG.settle.start, CFG.settle.end, p);
-    const chaosT = smooth(CFG.form.start, CFG.settle.start, p);
-    const cursorOn = !isTouch && state.mouseSeen && p >= CFG.form.start;
 
-    // camera: dolly into the fog until the blast, then it holds and drifts
-    const pre = 1 - smooth(CFG.explode.at, CFG.form.start, p);
-    const mouseAmt = CFG.camera.mouse * pre + CFG.cursor.parallax * (1 - pre) * (cursorOn ? 1 : 0.4) * (1 - settle * 0.6);
-    const shake = k * k * 0.018 * pre + flash * 0.05;
-    camera.position.set(
-      state.smx * mouseAmt + Math.sin(T * 0.11) * 0.15 * (1 - settle) + (Math.random() - 0.5) * shake,
-      -state.smy * mouseAmt * 0.6 + Math.cos(T * 0.09) * 0.1 * (1 - settle) + (Math.random() - 0.5) * shake,
-      CFG.camera.z - Math.min(1, p / CFG.explode.at) * CFG.camera.dolly,
-    );
-    lookAt.set(state.smx * (0.25 * pre + 0.08 * (1 - pre)), -state.smy * (0.15 * pre + 0.05 * (1 - pre)), camera.position.z - 20);
-    camera.lookAt(lookAt);
-    camera.rotation.z += Math.sin(T * 0.07) * 0.012 * (1 - settle);
-    camera.updateMatrixWorld();
-
-    // explosion: fires at the end of the tension and plays in time; scrolling back rebuilds the text
+    // explosion: fires at the end of the tension, then everything runs on time;
+    // scrolling back above it rebuilds the text
     if (!exploded && p >= CFG.explode.at && body.classList.contains("is-ready")) {
+      updateCamera(0, 1, 0);
       captureText();
       exploded = true;
-      burstT0 = T - (p > CFG.form.start ? CFG.explode.seconds : 0); // jumped straight past it: no blast replay
-      if (p <= CFG.form.start) sound.boom();
+      const jumped = p > CFG.explode.at + 0.03; // landed here from a jump: show the finished grid
+      burstT0 = T - (jumped ? FORM_DONE + 1 : 0);
+      if (!jumped) sound.boom();
     } else if (exploded && p < CFG.explode.at - 0.012) {
       exploded = false;
     }
     const burstT = exploded ? T - burstT0 : 0;
     const blastT = burstT - CFG.explode.hold;
     flash = exploded && blastT > 0 && blastT < 3 ? Math.exp(-blastT * 3.2) * smooth(0, 0.04, blastT) : 0;
+    const built = exploded ? smooth(FORM_DONE - 0.5, FORM_DONE, burstT) : 0; // 1 = grid finished
+    const pre = exploded ? 1 - smooth(0, 0.9, burstT) : 1;                   // 1 = still in the void phases
+    const cursorOn = !isTouch && state.mouseSeen && exploded;
+    const chapterName = !exploded ? (p < CFG.tension.start ? "praznina" : "napetost") : (burstT < 1.1 ? "eksplozija" : "radovi");
 
-    // focus: rack onto the text, then through the cards, then lock on the grid
-    const preFocus = CFG.focus.from + (CFG.focus.to - CFG.focus.from) * smooth(0, 0.3, p) - Math.min(1, p / CFG.explode.at) * CFG.camera.dolly * 0.5;
-    let focus = exploded ? CFG.explode.textDist + form * 3.7 + (1 - settle) * Math.sin(T * 0.22) * 2.0 * chaosT : preFocus;
-    focus += (CFG.grid.distance - focus) * settle;
+    updateCamera(k, pre, built);
 
-    // cards: tumbling chaos -> grid
+    // focus: rack onto the text, then pull to the grid as the cards build
+    const preFocus = CFG.focus.from + (CFG.focus.to - CFG.focus.from) * smooth(0, 0.45, p) - Math.min(1, p / CFG.explode.at) * CFG.camera.dolly * 0.5;
+    const focus = exploded ? CFG.explode.textDist + (CFG.grid.distance - CFG.explode.textDist) * smooth(0.1, 1.2, burstT) : preFocus;
+
+    // cards: each forms tilted and a little deep, and straightens into its grid slot as it builds
     camera.getWorldDirection(fwd);
-    const tiltOn = cursorOn ? 1 : 0;
-    const cardIn = smooth(0.62, 1, form);
+    const tiltOn = cursorOn ? built : 0;
     cards.forEach((c, i) => {
-      const s = c.extra ? 0 : settle;
-      tmpV.set(
-        c.chaos.x + Math.sin(T * 0.13 + c.phase) * 0.35,
-        c.chaos.y + Math.cos(T * 0.11 + c.phase) * 0.25,
-        c.chaos.z + chaosT * 2.5,
-      );
-      if (c.extra) tmpV.z -= settle * 16; // the extras fall back into the dark
-      c.pos.copy(tmpV).lerp(c.grid, s);
-      tmpE.set(c.rot0.x + c.spin.x * T, c.rot0.y + c.spin.y * T, c.rot0.z + c.spin.z * T);
+      const start = CFG.explode.hold + CFG.form.delay + i * CFG.form.stagger;
+      c.prog = exploded ? clamp01((burstT - start) / CFG.form.duration) : 0;
+      const ease = 1 - Math.pow(1 - c.prog, 3);
+      c.hover += ((hovered === i && built > 0.9 ? 1 : 0) - c.hover) * (1 - Math.exp(-dt * 10));
+      c.pos.copy(c.grid);
+      c.pos.z += c.zOff * (1 - ease) + c.hover * CFG.cursor.hoverLift;
+      tmpE.set(c.rot0.x * (1 - ease), c.rot0.y * (1 - ease), c.rot0.z * (1 - ease));
       tmpQ.setFromEuler(tmpE);
-      // cursor tilt on the settled grid
-      c.hover += ((hovered === i && settle > 0.9 ? 1 : 0) - c.hover) * (1 - Math.exp(-dt * 10));
       tmpE.set(state.smy * CFG.cursor.tilt.x * tiltOn * (0.6 + c.hover * 0.6), state.smx * CFG.cursor.tilt.y * tiltOn * (0.6 + c.hover * 0.6), 0);
       tmpQ2.setFromEuler(tmpE);
-      c.quat.copy(tmpQ).slerp(tmpQ2, s);
-      if (!c.extra) c.pos.z += c.hover * CFG.cursor.hoverLift * settle;
-      c.size.set(cardW * c.scale, cardH * c.scale);
-
+      c.quat.copy(tmpQ).multiply(tmpQ2);
+      c.size.set(cardW, cardH);
       cardUniformsM[i].compose(c.pos, c.quat, one);
       cardUniformsS[i].copy(c.size);
+      cardUniformsP[i] = c.prog;
 
-      // depth blur and fades
       const dist = tmpV.copy(c.pos).sub(camera.position).dot(fwd);
-      c.dist = dist;
       const coc = Math.min(1, Math.abs(dist - focus) / Math.max(dist, 0.1) * 1.7);
       const u = c.mesh.material.uniforms;
+      u.uProg.value = c.prog;
       u.uBlur.value = coc;
       u.uDim.value = 1 - 0.45 * smooth(9, 20, dist);
-      c.alpha = cardIn * smooth(0.4, 1.4, dist) * (c.extra ? 1 - smooth(0.2, 0.9, settle) : 1);
-      u.uAlpha.value = c.alpha;
       u.uHover.value = c.hover;
       u.uLightAmt.value = CFG.cursor.light * tiltOn;
-      c.mesh.visible = exploded && c.alpha > 0.002;
+      c.mesh.visible = exploded && c.prog > 0;
       c.mesh.position.copy(c.pos); c.mesh.quaternion.copy(c.quat); c.mesh.scale.set(c.size.x, c.size.y, 1);
-      c.mesh.renderOrder = Math.round(5000 - dist * 100); // back to front
+      c.mesh.renderOrder = Math.round(5000 - dist * 100);
     });
 
     // grid links follow the projected cards
-    gridUI.classList.toggle("is-on", exploded && settle > 0.92);
-    if (settle > 0.5) {
+    gridUI.classList.toggle("is-on", built > 0.6);
+    if (exploded) {
       for (let i = 0; i < GRID_N; i++) {
         const c = cards[i];
         let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
@@ -942,15 +947,15 @@ function startGL() {
 
     // uniforms
     fogMat.uniforms.uTime.value = T;
-    fogMat.uniforms.uScroll.value = Math.min(p, CFG.explode.at) + chaosT * 0.3;
+    fogMat.uniforms.uScroll.value = Math.min(p, CFG.explode.at) * 0.6 + (1 - pre) * 0.15;
     fogMat.uniforms.uCam.value.set(state.smx, -state.smy);
     fogMat.uniforms.uLight.value.set(0.64 + Math.sin(T * 0.045) * 0.07, 0.8 + Math.cos(T * 0.06) * 0.05);
     fogMat.uniforms.uTension.value = k * pre + flash * 1.2;
-    fogMat.uniforms.uDim.value = 1 - 0.3 * form - 0.2 * settle;
+    fogMat.uniforms.uDim.value = 1 - 0.45 * (1 - pre);
 
     dustMat.uniforms.uTime.value = T;
     dustMat.uniforms.uFocus.value = focus;
-    dustMat.uniforms.uAlpha.value = easedReveal * (1 - 0.35 * settle);
+    dustMat.uniforms.uAlpha.value = easedReveal * (1 - 0.35 * built);
     dustMat.uniforms.uAgitate.value = k * pre;
     dustMat.uniforms.uBlast.value = exploded && blastT > 0 ? (1 - Math.exp(-blastT * 2.5)) * Math.exp(-blastT * 0.6) : 0;
 
@@ -958,8 +963,7 @@ function startGL() {
     shardMat.uniforms.uFocus.value = focus;
     shardMat.uniforms.uVis.value = exploded ? 1 : 0;
     shardMat.uniforms.uBurstT.value = burstT;
-    shardMat.uniforms.uForm.value = form;
-    shards.visible = exploded && form < 1;
+    shards.visible = exploded && burstT < FORM_DONE + 0.2;
 
     mouseUniforms.uMouse.value.set((state.smx + 1) / 2 * W, (1 - (state.smy + 1) / 2) * H);
     postMat.uniforms.uTime.value = T;
@@ -976,10 +980,10 @@ function startGL() {
     renderer.setRenderTarget(null);
     renderer.render(postScene, orthoCam);
 
-    if (body.classList.contains("is-ready")) updateDOM(p, now, introT, exploded);
+    if (body.classList.contains("is-ready")) updateDOM(p, now, introT, exploded, chapterName);
     if (forcedDt == null) requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
   // review aid for throttled tabs: __hook.step(frames, dt) runs frames at a fixed step
-  window.__hook = { step(n = 1, d = 1 / 60) { for (let i = 0; i < n; i++) frame(performance.now(), d); } };
+  window.__hook = { paused: false, step(n = 1, d = 1 / 60) { for (let i = 0; i < n; i++) frame(performance.now(), d); } };
 }

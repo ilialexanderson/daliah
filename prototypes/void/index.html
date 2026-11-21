@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>daliah: hook (prototip)</title>
-<link rel="stylesheet" href="fonts.css">
-<link rel="stylesheet" href="void.css">
+<link rel="stylesheet" href="fonts.css?v=6">
+<link rel="stylesheet" href="void.css?v=6">
 </head>
-<body class="type-a is-loading">
+<body class="is-loading">
 
 <canvas id="gl" aria-hidden="true"></canvas>
 <div class="fallback-bg" aria-hidden="true"></div>
@@ -48,11 +48,6 @@
     <span class="progress-track"><span class="progress-fill" id="progress-fill"></span></span>
   </div>
 
-  <div class="type-switch mono" role="group" aria-label="pregled tipografije">
-    <span class="type-switch-label">tip</span>
-    <button type="button" data-type="a" aria-pressed="true">A<span class="long"> · newsreader + plex mono</span></button>
-    <button type="button" data-type="b" aria-pressed="false">B<span class="long"> · geist + geist mono</span></button>
-  </div>
 
   <div class="scroll-hint mono" id="scroll-hint" aria-hidden="true">
     <span>skrolaj</span><span class="scroll-hint-line"></span>
@@ -62,8 +57,8 @@
 <main>
   <section id="void" class="void">
     <div class="stage">
-      <h1 class="title" id="title" aria-label="daliah">DALIAH</h1>
-      <p class="tagline" id="tagline">uživamo u <em>strateškom</em> pozicioniranju brenda, <em>kreativnom</em> problem-solvingu, unikatnim objavama, konceptima koji <em>mirišu</em> ekstra i komunikaciji koja ne smrdi na copy-paste.</p>
+      <h1 class="title" id="title"><span class="sr-only">daliah</span><svg class="wordmark" viewBox="4.31 868.41 660.46 117.9" aria-hidden="true" focusable="false"><path fill="currentColor" d="M4.31,986.3v-117.89h53.55c12.8,0,24.08,2.45,33.85,7.33,9.77,4.88,17.4,11.73,22.9,20.54,5.5,8.81,8.25,19.16,8.25,31.07s-2.76,22.25-8.25,31.07c-5.5,8.81-13.13,15.66-22.9,20.54-9.77,4.88-21.05,7.32-33.85,7.32H4.31ZM31.76,964.07h24.76c7.86,0,14.68-1.49,20.46-4.46,5.78-2.98,10.27-7.24,13.47-12.8,3.2-5.56,4.8-12.04,4.8-19.45s-1.6-14.04-4.8-19.54c-3.2-5.5-7.69-9.73-13.47-12.71-5.78-2.98-12.6-4.47-20.46-4.47h-24.76v73.43Z"/><path fill="currentColor" d="M126.23,986.3l52.37-117.89h26.95l52.88,117.89h-28.63l-43.28-104.07h10.95l-43.28,104.07h-27.96ZM152.67,961.04l6.9-20.71h60.96l7.08,20.71h-74.94Z"/><path fill="currentColor" d="M270.72,986.3v-117.89h27.45v95.66h58.77v22.23h-86.22Z"/><path fill="currentColor" d="M372.43,986.3v-117.89h27.45v117.89h-27.45Z"/><path fill="currentColor" d="M412.17,986.3l52.37-117.89h26.94l52.88,117.89h-28.63l-43.28-104.07h10.95l-43.28,104.07h-27.95ZM438.61,961.04l6.91-20.71h60.96l7.07,20.71h-74.94Z"/><path fill="currentColor" d="M584.11,986.3h-27.45v-117.89h27.45v117.89ZM639.51,937.97h-57.59v-23.07h57.59v23.07ZM637.49,868.42h27.28v117.89h-27.28v-117.89Z"/></svg></h1>
+      <p class="tagline" id="tagline">uživamo u strateškom pozicioniranju brenda, kreativnom problem-solvingu, unikatnim objavama, konceptima koji <em>mirišu</em> ekstra i komunikaciji koja ne smrdi na copy-paste.</p>
     </div>
     <span id="radovi" class="void-end" aria-hidden="true"></span>
   </section>
@@ -77,6 +72,6 @@
   </section>
 </main>
 
-<script type="module" src="void.js"></script>
+<script type="module" src="void.js?v=6"></script>
 </body>
 </html>

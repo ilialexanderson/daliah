@@ -6,14 +6,12 @@
   --hair: rgba(214, 198, 222, 0.18);
   --hair-strong: rgba(214, 198, 222, 0.42);
   --gutter: clamp(16px, 2.2vw, 28px);
-  --display: "Newsreader", Georgia, serif;
+  --display: "Plus Jakarta Sans", system-ui, sans-serif;
+  --accent: "Cormorant Garamond", Georgia, serif; /* highlight words only */
   --mono: "IBM Plex Mono", ui-monospace, monospace;
+  --lilac: #c9a2cf; /* brand purple #642969 lifted for text on the dark void */
 }
-
-body.type-b {
-  --display: "Geist", system-ui, sans-serif;
-  --mono: "Geist Mono", ui-monospace, monospace;
-}
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 * { box-sizing: border-box; }
 html { background: var(--void); }
@@ -190,20 +188,6 @@ body.is-ready .chrome > * { opacity: 1; }
 .progress-track { position: relative; width: 96px; height: 1px; background: var(--hair); }
 .progress-fill { position: absolute; inset: 0; background: var(--ink); transform-origin: left; transform: scaleX(0); }
 
-.type-switch {
-  position: absolute;
-  left: 50%;
-  top: calc(var(--gutter) + 14px);
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  border: 1px solid var(--hair);
-}
-.type-switch-label { padding: 0 8px; }
-.type-switch button { padding: 5px 10px; color: var(--ink-dim); }
-.type-switch button[aria-pressed="true"] { color: var(--void); background: var(--ink); }
 
 .scroll-hint {
   position: absolute;
@@ -231,7 +215,7 @@ body.is-scrolled .scroll-hint { opacity: 0 !important; }
 
 /* ---------- void + tagline ---------- */
 main { position: relative; z-index: 5; }
-.void { height: 1000vh; position: relative; }
+.void { height: 500vh; position: relative; }
 .void-end { position: absolute; left: 0; bottom: 0; height: 100vh; width: 1px; }
 .stage {
   position: sticky;
@@ -244,39 +228,35 @@ main { position: relative; z-index: 5; }
 }
 .stage > * { grid-area: 1 / 1; }
 
-/* DALIAH: the empty home page, gone on the first scroll */
-.title {
-  margin: 0;
-  font-weight: 300;
-  font-size: clamp(56px, 13vw, 210px);
-  line-height: 1;
-  letter-spacing: 0.16em;
-  margin-right: -0.16em; /* optical centre despite the tracking */
-  color: var(--ink-strong);
-}
-body.type-b .title { font-weight: 500; letter-spacing: 0.1em; margin-right: -0.1em; }
-.title .l { display: inline-block; opacity: 0; will-change: opacity, filter, transform; }
+/* DALIAH: the empty home page, gone on the first scroll. The wordmark from the logo, letters only */
+.title { margin: 0; line-height: 0; font-size: clamp(30px, 4vw, 60px); color: var(--ink-strong); }
+.title .wordmark { display: none; }
+.title .letters { position: relative; display: block; width: clamp(150px, 19vw, 290px); aspect-ratio: 660.46 / 117.9; }
+.title .l { position: absolute; display: block; }
+.title .l svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.title .l { opacity: 0; will-change: opacity, filter, transform; }
 .tagline {
   margin: 0;
   justify-self: center;
-  max-width: 17.5em;
+  max-width: 19em;
   text-align: center;
-  font-weight: 300;
-  font-size: clamp(27px, 4.1vw, 62px);
-  line-height: 1.12;
-  letter-spacing: -0.012em;
+  font-weight: 400;
+  font-size: clamp(24px, 3.3vw, 50px);
+  line-height: 1.28;
+  letter-spacing: -0.015em;
   color: var(--ink);
   text-wrap: balance;
   will-change: transform, text-shadow;
 }
-body.type-b .tagline {
-  font-size: clamp(25px, 3.7vw, 56px);
-  line-height: 1.1;
-  letter-spacing: -0.03em;
-  max-width: 18.5em;
+.tagline em {
+  font-family: var(--accent);
+  font-style: italic;
+  font-weight: 600;
+  font-size: 1.2em;
+  line-height: 0.9;
+  letter-spacing: 0;
+  color: var(--lilac);
 }
-.tagline em { font-style: italic; color: var(--ink-strong); }
-body.type-b .tagline em { font-style: normal; font-weight: 400; }
 
 .tagline .w {
   display: inline-block;
@@ -309,7 +289,8 @@ body.no-motion .tagline .w, body.no-motion .title .l { opacity: 1 !important; fi
 body.no-motion .void { height: auto; }
 body.no-motion .stage { position: relative; height: auto; min-height: 100vh; gap: 48px; align-content: center; }
 body.no-motion .stage > * { grid-area: auto; }
-body.no-motion .title { font-size: clamp(44px, 9vw, 120px); }
+body.no-motion .title .wordmark { display: block; width: clamp(150px, 19vw, 290px); }
+body.no-motion .title .letters { display: none; }
 body.no-motion .grid-ui {
   position: relative; inset: auto; opacity: 1; pointer-events: auto;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 56px 20px;
@@ -329,9 +310,6 @@ body.no-motion .tile-meta { position: static; }
 .after-note { max-width: 32em; font-size: 20px; line-height: 1.4; color: var(--ink-dim); }
 
 @media (max-width: 720px) {
-  .type-switch { top: auto; bottom: calc(var(--gutter) + 48px); }
-  .type-switch button { padding: 5px 10px; }
-  .type-switch .long { display: none; }
   .sound-label { display: none; }
   .chapter-rule { width: 20px; }
   .top-right { gap: 18px; }
