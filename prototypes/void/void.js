@@ -50,7 +50,7 @@ const I18N = {
       "contact-line": "pričajmo o nečemu što <em>miriše</em>.",
       "copy-mail": "kopiraj",
     },
-    copy: "kopiraj", copied: "kopirano", grid: "radovi", about: "o nama", other: "EN",
+    copy: "kopiraj", copied: "kopirano", grid: "radovi", about: "o nama", other: "EN", polu: "sarajevski polumaraton",
     tags: { pv: "foto-video", social: "integrisane · social", design: "integrisane · dizajn", web: "integrisane · web" },
     all: ["svi", "radovi"],
   },
@@ -65,7 +65,7 @@ const I18N = {
       "contact-line": "let's talk about something that <em>smells</em> good.",
       "copy-mail": "copy",
     },
-    copy: "copy", copied: "copied", grid: "work", about: "about us", other: "BS",
+    copy: "copy", copied: "copied", grid: "work", about: "about us", other: "BS", polu: "Sarajevo half marathon",
     tags: { pv: "photo-video", social: "integrated · social", design: "integrated · design", web: "integrated · web" },
     all: ["all", "work"],
   },
@@ -78,6 +78,8 @@ const LANG = (() => {
   } catch { return "bs"; }
 })();
 const T = I18N[LANG];
+// after a language switch the page opens at its top (not where the scroll was)
+const RESET_SCROLL = (() => { try { if (sessionStorage.getItem("toTop")) { sessionStorage.removeItem("toTop"); history.scrollRestoration = "manual"; scrollTo(0, 0); addEventListener("load", () => scrollTo(0, 0)); return true; } } catch {} return false; })();
 const GHOST = new URLSearchParams(location.search).get("look") === "plain" ? 0 : 1; // see-through photos with faint white outlines; ?look=plain turns it off
 document.documentElement.lang = LANG;
 document.title = T.title;
@@ -87,8 +89,8 @@ const langBtn = document.getElementById("lang");
 if (langBtn) {
   langBtn.textContent = T.other;
   langBtn.addEventListener("click", () => {
-    try { localStorage.setItem("lang", LANG === "en" ? "bs" : "en"); } catch {}
-    const u = new URL(location.href);
+    try { localStorage.setItem("lang", LANG === "en" ? "bs" : "en"); sessionStorage.setItem("toTop", "1"); } catch {}
+    const u = new URL(location.href); u.hash = ""; u.searchParams.delete("p");
     if (u.searchParams.has("lang")) { u.searchParams.delete("lang"); location.href = u.toString(); } else location.reload();
   });
 }
@@ -98,7 +100,7 @@ if (langBtn) {
 const PROJECTS = [
   { id: "kodeks", ar: 1.5, col: 1, img: "media/kodeks-kejs.jpg", title: "Kodeks", tags: T.tags.social, href: "#radovi/kodeks" },
   { id: "bash", ar: 0.8, col: 0, img: "media/bash-kejs.jpg", title: "Bash", tags: T.tags.design, href: "#radovi/bash" },
-  { id: "polumaraton", ar: 1.5, col: 2, img: "media/ngo_marathon.jpg", title: "sarajevski polumaraton", tags: "", href: "#radovi/polumaraton" },
+  { id: "polumaraton", ar: 1.5, col: 2, img: "media/ngo_marathon.jpg", title: T.polu, tags: "", href: "#radovi/polumaraton" },
   { id: "mirza", ar: 0.8, col: 0, img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: T.tags.pv, href: "#radovi/mirza" },
   { id: "o-nama", ar: 1, col: 1, small: 0.6, kind: "logo", title: T.about, tags: "daliah →", href: "#o-nama" },
   { id: "cupra", ar: 0.8, col: 2, img: "media/cupra1-hero.jpg", title: "Cupra", tags: T.tags.pv, href: "#radovi/cupra" },
@@ -527,7 +529,8 @@ function startGL() {
     };
   });
   const rInset = mulberry(77);
-  cards.forEach((c) => { const r = (lo, hi) => lo + rInset() * (hi - lo); c.inset.set(r(0.012, 0.065), r(0.012, 0.065), r(0.012, 0.07), r(0.012, 0.07)); });
+  const side = () => (rInset() < 0.5 ? -1 : 1) * (0.015 + rInset() * 0.055); // negative = outside the photo, positive = inside; an even chance either way
+  cards.forEach((c) => c.inset.set(side(), side(), side(), side()));
   const restCam = new THREE.Vector3(0, 0, CFG.camera.z - CFG.camera.dolly);
   // masonry: equal-width columns, each card in its own aspect (landscape or portrait)
   function layoutGrid() {
@@ -565,7 +568,8 @@ function startGL() {
   const mouseUniforms = { uMouse: { value: new THREE.Vector2(-9999, -9999) }, uRes: { value: new THREE.Vector2(1, 1) } };
 
   const cardGeo = new THREE.PlaneGeometry(1, 1);
-  const cardVert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+  const CARD_PAD = 0.1; // the card's mesh is this much bigger on every side, so the ghost frame can sit outside the photo
+  const cardVert = `varying vec2 vUv; void main(){ vUv = (uv - 0.5) * ${(1 + 2 * CARD_PAD).toFixed(3)} + 0.5; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
   const cardFrag = /* glsl */ `
     precision highp float;
     varying vec2 vUv;
@@ -575,21 +579,17 @@ function startGL() {
     uniform vec4 uInset;   // where the ghost frame sits on each side (left, right, top, bottom): uneven, so it is never symmetrical
     uniform vec2 uMouse, uRes;
     ${landedChunk}
-    // how skin-like a (blurred) patch of the photo is: the outlines keep off faces and hands
-    float skinAt(vec2 u, float lod){
-      vec3 k = texture2D(uAtlas, uCell.xy + clamp(u, 0.004, 0.996) * uCell.zw, lod).rgb;
-      float l = dot(k, vec3(0.299, 0.587, 0.114)), rg = k.r - k.g, gb = k.g - k.b;
-      return smoothstep(0.02, 0.06, rg) * (1.0 - smoothstep(0.16, 0.30, rg)) * smoothstep(0.0, 0.035, gb) * smoothstep(0.16, 0.34, l) * (1.0 - smoothstep(0.86, 0.97, l));
-    }
-    float lum(vec2 u){ return dot(texture2D(uAtlas, uCell.xy + clamp(u, 0.004, 0.996) * uCell.zw, 1.0).rgb, vec3(0.299, 0.587, 0.114)); }
     void main(){
       vec2 uv = vUv;
       float l = landed(clamp((uProg - 0.3) / 0.7, 0.0, 1.0), uv);
       float rev = smoothstep(0.93, 1.0, l);                       // image only where particles have landed
       float front = smoothstep(0.7, 0.95, l) * (1.0 - rev);       // a faint glow just ahead of them
       float edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
-      float line = (1.0 - smoothstep(0.0, 0.005, edge)) * smoothstep(0.3, 0.45, uProg);
-      if (rev + front + line < 0.002) discard;
+      float line = (1.0 - smoothstep(0.0, 0.005, edge)) * step(-0.003, edge) * smoothstep(0.3, 0.45, uProg);
+      // the ghost frame: each side sits inside or outside the photo by its own small amount (uInset, signed)
+      float fd = max(max(uInset.x - uv.x, uv.x - (1.0 - uInset.y)), max(uInset.w - uv.y, uv.y - (1.0 - uInset.z)));
+      float fa = (1.0 - smoothstep(0.0, 0.0028, abs(fd))) * uGhost * smoothstep(0.5, 0.85, uProg) * 0.55 * (1.0 - uBlur * 0.7);
+      if (rev + front + line + fa < 0.002) discard;
       vec3 c = vec3(0.0);
       float rad = uBlur * 0.065;
       for (int i = 0; i < 8; i++){
@@ -603,26 +603,13 @@ function startGL() {
       c = mix(grade(c), c, uHover * 0.85);                       // hover shows the original colours
       c *= uDim * (1.0 + uHover * 0.1);
       c = mix(c, vec3(0.95, 0.9, 0.97), (1.0 - smoothstep(0.0, 0.006, edge)) * (0.18 + uHover * 0.5) * (1.0 - uBlur));
-      if (uGhost > 0.0) {
-        // faint white drawing over the photo: the strongest edges inside it (Sobel on luminance) and an inset frame
-        vec2 e = vec2(1.0 / 260.0, uAspect / 260.0);
-        float tl = lum(uv + vec2(-e.x, e.y)), t = lum(uv + vec2(0.0, e.y)), tr = lum(uv + e);
-        float l = lum(uv + vec2(-e.x, 0.0)), r = lum(uv + vec2(e.x, 0.0));
-        float bl = lum(uv - e), b = lum(uv + vec2(0.0, -e.y)), br = lum(uv + vec2(e.x, -e.y));
-        float gx = (tr + 2.0 * r + br) - (tl + 2.0 * l + bl);
-        float gy = (tl + 2.0 * t + tr) - (bl + 2.0 * b + br);
-        float skin = max(skinAt(uv, 2.5), skinAt(uv, 4.5) * 0.9);
-        float ln = smoothstep(0.55, 1.4, length(vec2(gx, gy))) * (0.3 + 0.7 * vn2(uv * 7.0 + 1.3)) * (1.0 - smoothstep(0.12, 0.45, skin));
-        float fd = max(max(uInset.x - uv.x, uv.x - (1.0 - uInset.y)), max(uInset.w - uv.y, uv.y - (1.0 - uInset.z)));
-        float frame = 1.0 - smoothstep(0.0, 0.0028, abs(fd));
-        c += vec3(0.97, 0.93, 1.0) * (ln * 0.55 + frame * 0.5) * uGhost * (1.0 - uBlur);
-      }
       vec2 d = (gl_FragCoord.xy - uMouse) / uRes.y;
       c += vec3(0.62, 0.5, 0.7) * exp(-dot(d, d) / (uLightR * uLightR)) * uLightAmt;
       vec3 glow = vec3(0.86, 0.74, 0.94);
       c = mix(glow, c, rev);
       c = mix(c, vec3(0.92, 0.86, 0.96), line * (1.0 - rev));
-      float a = max((rev * (1.0 - 0.2 * uGhost) + front * 0.16) * smoothstep(0.0, 0.004 + uBlur * 0.05, edge), line * 0.55);
+      float a = max(max((rev * (1.0 - 0.2 * uGhost) + front * 0.16) * smoothstep(0.0, 0.004 + uBlur * 0.05, edge), line * 0.55), fa);
+      c = mix(c, vec3(0.97, 0.93, 1.0), clamp(fa / max(a, 0.001), 0.0, 1.0));
       gl_FragColor = vec4(c, a);
     }`;
   cards.forEach((c) => {
@@ -965,7 +952,7 @@ function startGL() {
   });
 
   let revealStart = 0;
-  runLoader(() => { captureTitle(); body.classList.add("is-ready"); revealStart = performance.now(); applyJump(); });
+  runLoader(() => { if (RESET_SCROLL) scrollTo(0, 0); captureTitle(); body.classList.add("is-ready"); revealStart = performance.now(); applyJump(); });
 
   // ---------- frame loop
   const clock = new THREE.Clock();
@@ -1059,7 +1046,7 @@ function startGL() {
       u.uHover.value = c.hover;
       u.uLightAmt.value = CFG.cursor.light * tiltOn;
       c.mesh.visible = exploded && c.prog > 0;
-      c.mesh.position.copy(c.pos); c.mesh.quaternion.copy(c.quat); c.mesh.scale.set(c.size.x, c.size.y, 1);
+      c.mesh.position.copy(c.pos); c.mesh.quaternion.copy(c.quat); c.mesh.scale.set(c.size.x * (1 + 2 * CARD_PAD), c.size.y * (1 + 2 * CARD_PAD), 1);
       c.mesh.renderOrder = Math.round(5000 - dist * 100);
     });
 

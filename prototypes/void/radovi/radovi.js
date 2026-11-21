@@ -17,13 +17,14 @@ const T = I18N[LANG];
 document.documentElement.lang = LANG; document.title = T.doc;
 const $ = (id) => document.getElementById(id);
 $("title").innerHTML = T.title; $("foot-line").innerHTML = T.foot; $("nav-contact").textContent = T.contact; $("lang").textContent = T.other;
-$("lang").addEventListener("click", () => { try { localStorage.setItem("lang", LANG === "en" ? "bs" : "en"); } catch {} const u = new URL(location.href); u.searchParams.delete("lang"); location.href = u.toString(); });
+$("lang").addEventListener("click", () => { try { localStorage.setItem("lang", LANG === "en" ? "bs" : "en"); sessionStorage.setItem("toTop", "1"); } catch {} const u = new URL(location.href); u.hash = ""; u.searchParams.delete("lang"); location.href = u.toString(); });
+try { if (sessionStorage.getItem("toTop")) { sessionStorage.removeItem("toTop"); history.scrollRestoration = "manual"; scrollTo(0, 0); addEventListener("load", () => scrollTo(0, 0)); } } catch {}
 
 // Published case studies (polumaraton is a draft until it has text). `ar` is the tile shape.
 const WORK = [
   { slug: "cupra", title: "Cupra", client: "Porsche BH", year: "2025 – 2026", ar: 0.8, img: "../media/cupra1-hero.jpg", tags: ["foto-video"] },
-  { slug: "bash", title: "BASH dobar kejs", client: "A.W.G.", year: "08/2025", ar: 0.8, img: "../media/bash-kejs.jpg", tags: ["integrisane", "foto-video", "dizajn", "social"] },
-  { slug: "mirza", title: "frame by frame: Mirza Mustafagić", client: "Mirza Mustafagić", year: "2024 – 2026", ar: 0.8, img: "../media/mirza_mustafagic.jpg", tags: ["foto-video"] },
+  { slug: "bash", title: "Bash", client: "A.W.G.", year: "08/2025", ar: 0.8, img: "../media/bash-kejs.jpg", tags: ["integrisane", "foto-video", "dizajn", "social"] },
+  { slug: "mirza", title: "Mirza Mustafagić", client: "Mirza Mustafagić", year: "2024 – 2026", ar: 0.8, img: "../media/mirza_mustafagic.jpg", tags: ["foto-video"] },
   { slug: "kodeks", title: "Kodeks", client: "", year: "2024 – 2026", ar: 1.5, img: "../media/kodeks-kejs.jpg", tags: ["integrisane", "foto-video", "dizajn", "social"] },
   { slug: "omg", title: "OMG", client: "", year: LANG === "en" ? "2024 – now" : "2024 – danas", ar: 1.5, img: "../media/omg.jpg", tags: ["integrisane", "foto-video", "dizajn", "social", "web"] },
 ];
