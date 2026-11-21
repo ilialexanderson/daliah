@@ -266,7 +266,8 @@ main { position: relative; z-index: 5; }
 
 /* ---------- grid links over the settled 3D cards ---------- */
 .grid-ui { position: fixed; inset: 0; z-index: 6; pointer-events: none; opacity: 0; transition: opacity .7s ease; }
-.grid-ui.is-on { opacity: 1; }
+.grid-ui.is-on { opacity: calc(1 - var(--past, 0)); }
+.grid-ui.is-past .tile { pointer-events: none !important; }
 .grid-ui.is-on .tile { pointer-events: auto; }
 .tile { position: absolute; left: 0; top: 0; display: block; text-decoration: none; color: var(--ink); }
 .tile-thumb { display: none; }
@@ -300,14 +301,45 @@ body.no-motion .tile { position: relative; transform: none !important; width: au
 body.no-motion .tile-thumb { display: block; aspect-ratio: 4 / 5; background-size: cover; background-position: center; border: 1px solid var(--hair); }
 body.no-motion .tile-meta { position: static; }
 
-.after {
-  position: relative;
-  min-height: 100vh;
-  padding: 18vh calc(var(--gutter) + 22px);
-  background: linear-gradient(transparent, var(--void) 30%);
+/* ---- kontakt: closes the page in the void; one big line, no form ---- */
+.contact {
+  position: relative; isolation: isolate; overflow: hidden;
+  min-height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: clamp(20px, 3.2vw, 40px);
+  padding: 16vh calc(var(--gutter) + 22px) 9vh;
+  background: linear-gradient(transparent, var(--void) 22%);
   border-top: 1px solid var(--hair);
 }
-.after-note { max-width: 32em; font-size: 20px; line-height: 1.4; color: var(--ink-dim); }
+.contact-glow {
+  position: absolute; z-index: -1; left: 50%; top: 62%; width: 90vmax; height: 60vmax; transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(100, 41, 105, 0.38), rgba(100, 41, 105, 0.12) 55%, transparent);
+  pointer-events: none;
+}
+.contact-eyebrow { margin: 0; color: var(--ink-dim); }
+.contact-line {
+  margin: 0; max-width: 14em; font-family: var(--display); font-weight: 400; letter-spacing: -0.03em; line-height: 1.02;
+  font-size: clamp(40px, 7.4vw, 124px); color: var(--ink-strong);
+}
+.contact-line em { font-family: var(--accent); font-style: italic; font-weight: 600; font-size: 1.15em; letter-spacing: -0.01em; color: var(--lilac); }
+.contact-main { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-top: clamp(4px, 2vw, 28px); }
+.contact-mail {
+  display: inline-flex; align-items: baseline; gap: 0.35em; text-decoration: none; color: var(--ink-strong);
+  font-size: clamp(24px, 3.6vw, 56px); letter-spacing: -0.02em; line-height: 1.1;
+  padding-bottom: 6px; border-bottom: 1px solid var(--hair-strong);
+  transition: border-color .35s ease, color .35s ease;
+}
+.contact-mail-arrow { color: var(--lilac); font-size: 0.7em; transition: transform .35s cubic-bezier(.2,.8,.2,1); }
+.contact-mail:hover, .contact-mail:focus-visible { border-color: var(--lilac); color: #fff; }
+.contact-mail:hover .contact-mail-arrow, .contact-mail:focus-visible .contact-mail-arrow { transform: translate(4px, -4px); }
+.contact-copy {
+  appearance: none; background: none; cursor: pointer; color: var(--ink-dim);
+  border: 1px solid var(--hair); border-radius: 999px; padding: 8px 14px; transition: color .25s ease, border-color .25s ease;
+}
+.contact-copy:hover, .contact-copy:focus-visible { color: var(--ink-strong); border-color: var(--hair-strong); }
+.contact-phone { width: fit-content; text-decoration: none; color: var(--ink); font-size: clamp(18px, 2vw, 28px); letter-spacing: -0.01em; }
+.contact-phone:hover { color: var(--lilac); }
+.contact-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: clamp(24px, 8vh, 90px); padding-top: 18px; border-top: 1px solid var(--hair); color: var(--ink-dim); }
+.contact-place { margin-left: auto; }
+@media (max-width: 720px) { .contact-place { margin-left: 0; width: 100%; } }
 
 @media (max-width: 720px) {
   .sound-label { display: none; }

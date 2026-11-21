@@ -529,8 +529,8 @@ function startGL() {
     const D = CFG.grid.distance;
     const Hv = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), Wv = Hv * aspect;
     const cols = aspect >= 1 ? 3 : 2;
-    const gap = Hv * (aspect >= 1 ? 0.035 : 0.025), label = Hv * (aspect >= 1 ? 0.06 : 0.045);
-    const areaW = Wv * (aspect >= 1 ? 0.8 : 0.88), areaH = Hv * (aspect >= 1 ? 0.8 : 0.74);
+    const gap = Hv * (aspect >= 1 ? 0.02 : 0.015), label = Hv * (aspect >= 1 ? 0.05 : 0.04);
+    const areaW = Wv * (aspect >= 1 ? 0.94 : 0.95), areaH = Hv * (aspect >= 1 ? 0.82 : 0.8);
     // desktop: the columns set in PROJECTS; phone: each card goes to the shorter column
     const colOf = [], sum = new Array(cols).fill(0), count = new Array(cols).fill(0);
     PROJECTS.forEach((p, i) => {
@@ -786,11 +786,11 @@ function startGL() {
         vec3 p = position + dir * e * 1.2;
         p.x += sin(uTime * 1.3 + aSeed.y * 6.28 + p.y * 2.0) * 0.06 * e;
         p.y += cos(uTime * 1.1 + aSeed.x * 6.28) * 0.04 * e;
-        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        vec4 mv = vec4(p, 1.0); // already in view space
         float z = max(0.2, -mv.z);
         gl_Position = projectionMatrix * mv;
-        gl_PointSize = uVis > 0.0 ? (1.7 + aSeed.z * 1.1 + e * 1.6) * uDpr * clamp(6.3 / z, 0.5, 3.0) : 0.0;
-        vA = uVis * (1.0 - smoothstep(0.55, 1.0, t)) * (0.32 + 0.1 * aSeed.x);
+        gl_PointSize = uVis > 0.0 ? (1.25 + aSeed.z * 0.8 + e * 1.8) * uDpr * clamp(6.3 / z, 0.5, 3.0) : 0.0;
+        vA = uVis * (1.0 - smoothstep(0.55, 1.0, t)) * (0.42 + 0.12 * aSeed.x);
         vM = e;
       }`,
     fragmentShader: /* glsl */ `
@@ -830,6 +830,7 @@ function startGL() {
       const sx = pts[k] + Math.random() - 0.5, sy = pts[k + 1] + Math.random() - 0.5;
       v.set((sx / innerWidth) * 2 - 1, -(sy / innerHeight) * 2 + 1, 0.5).unproject(cam).sub(cam.position).normalize();
       v.multiplyScalar(D / -v.z).add(cam.position);
+      v.sub(cam.position); // view space: the particles ride with the screen, not the world
       tPos[i * 3] = v.x; tPos[i * 3 + 1] = v.y; tPos[i * 3 + 2] = v.z;
       x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x);
     }
@@ -1030,6 +1031,11 @@ function startGL() {
 
     // grid links follow the projected cards
     gridUI.classList.toggle("is-on", built > 0.6);
+    // past the hook (kontakt scrolls in): the void, the cards and their links fade out
+    const past = clamp01(1 - voidEl.getBoundingClientRect().bottom / innerHeight);
+    canvas.style.opacity = (1 - past).toFixed(3);
+    gridUI.style.setProperty("--past", past.toFixed(3));
+    gridUI.classList.toggle("is-past", past > 0.15);
     if (exploded) {
       for (let i = 0; i < GRID_N; i++) {
         const c = cards[i];
@@ -1093,3 +1099,16 @@ function startGL() {
   // review aid for throttled tabs: __hook.step(frames, dt) runs frames at a fixed step
   window.__hook = { paused: false, step(n = 1, d = 1 / 60) { for (let i = 0; i < n; i++) frame(performance.now(), d); } };
 }
+
+// kontakt: copy the email without leaving the page
+(() => {
+  const btn = document.getElementById("copy-mail");
+  const mail = document.querySelector(".contact-mail");
+  if (!btn || !mail) return;
+  let t;
+  btn.addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(mail.dataset.copy); btn.textContent = "kopirano"; }
+    catch { btn.textContent = mail.dataset.copy; }
+    clearTimeout(t); t = setTimeout(() => { btn.textContent = "kopiraj"; }, 1800);
+  });
+})();
