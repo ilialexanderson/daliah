@@ -17,7 +17,7 @@ const CFG = {
   scrollDamp: 0.085,
   // speed limit for the hook's playhead (hook fractions per second, going forward): a fast flick
   // can't skip the moments, the animation plays them through and then catches up with the scroll
-  pace: { title: 0.05, text: 0.16, burst: 0.075, rest: 0.25 },
+  pace: { title: 0.05, text: 0.16, burst: 0.06, rest: 0.25 },
   grain: 0.075,
   // timeline, as fractions of the hook scroll (5 screens)
   title: { out: 0.075 },
@@ -187,6 +187,11 @@ function readScroll() {
   body.classList.toggle("is-scrolled", scrollY > 8);
 }
 addEventListener("scroll", readScroll, { passive: true });
+// in-page links (skip to work, kontakt) mean "take me there now": finish the hook instead of holding
+document.addEventListener("click", (e) => {
+  const a = e.target.closest?.('a[href^="#"]');
+  if (a && a.getAttribute("href").length > 1) { state.skip = true; state.scroll = 1; }
+}, true);
 // review aid: ?p=0.6 jumps straight to that point of the hook
 const jumpTo = parseFloat(new URLSearchParams(location.search).get("p"));
 function applyJump() {
@@ -992,6 +997,13 @@ function startGL() {
         step = Math.min(step, rate * dt);
       }
       state.scroll += step;
+      if (state.skip) { state.scroll = 1; if (state.scrollTarget >= 1) state.skip = false; } // jumping to a link
+      // hold the page at the grid until the build has played out, so a flick can't carry you past it
+      // into kontakt; the skip and kontakt links jump on purpose and finish it at once instead
+      if (!reduceMotion && !state.skip && state.scroll < 0.985) {
+        const end = voidEl.offsetHeight - innerHeight;
+        if (scrollY > end + 2) scrollTo(0, end);
+      }
     }
     const damp = 1 - Math.pow(1 - CFG.camera.damp, dt * 60);
     state.smx += (state.mx - state.smx) * damp;
@@ -1131,7 +1143,7 @@ function startGL() {
   }
   requestAnimationFrame(frame);
   // review aid for throttled tabs: __hook.step(frames, dt) runs frames at a fixed step
-  window.__hook = { paused: false, step(n = 1, d = 1 / 60) { for (let i = 0; i < n; i++) frame(performance.now(), d); } };
+  window.__hook = { state, paused: false, step(n = 1, d = 1 / 60) { for (let i = 0; i < n; i++) frame(performance.now(), d); } };
 }
 
 // kontakt: copy the email without leaving the page

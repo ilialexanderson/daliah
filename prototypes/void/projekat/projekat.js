@@ -51,7 +51,7 @@
   });
   function sizeFrames() {
     for (const f of frames) {
-      const r = f.el.getBoundingClientRect(), m = clamp(Math.min(r.width, r.height) * 0.05, 8, 40);
+      const r = f.el.getBoundingClientRect(), m = clamp(Math.min(r.width, r.height) * 0.035, 6, 22);
       const [l, rr, t, b] = f.sides.map((s) => (s * m).toFixed(1) + "px");
       f.fr.style.cssText = `--fl:${l};--fr:${rr};--ft:${t};--fb:${b}`;
     }
@@ -204,8 +204,9 @@
     for (const t of tilts) {
       t.x = lerp(t.x, t.tx, 0.09); t.y = lerp(t.y, t.ty, 0.09);
       if (Math.abs(t.x) + Math.abs(t.y) < 0.0005 && !t.tx && !t.ty) { t.el.style.transform = ""; continue; }
-      t.el.style.transform = `perspective(1400px) rotateY(${(t.x * 3).toFixed(3)}deg) rotateX(${(-t.y * 3).toFixed(3)}deg)`;
-      if (t.fr) { t.fr.style.setProperty("--fx", (-t.x * 10).toFixed(2) + "px"); t.fr.style.setProperty("--fy", (-t.y * 10).toFixed(2) + "px"); }
+      const W = t.el.offsetWidth, a = 3 * Math.min(1, 420 / Math.max(W, 1)); // big photos barely lean, small ones a little more
+      t.el.style.transform = `perspective(${Math.max(1400, W * 3).toFixed(0)}px) rotateY(${(t.x * a).toFixed(3)}deg) rotateX(${(-t.y * a).toFixed(3)}deg)`;
+      if (t.fr) { t.fr.style.setProperty("--fx", (-t.x * 6).toFixed(2) + "px"); t.fr.style.setProperty("--fy", (-t.y * 6).toFixed(2) + "px"); }
     }
     if (stage) {
       stageT.x = lerp(stageT.x, stageT.tx, 0.06); stageT.y = lerp(stageT.y, stageT.ty, 0.06);

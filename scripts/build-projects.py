@@ -182,6 +182,21 @@ def chapter_html(slug, idx, title, md, cfg, meta):
     drop = [re.compile(d) for d in cfg.get("drop", [])]
     bl = blocks(md)
     out, i = [], 0
+    # a big list of variations on one phrase: only the word(s) that change are set in italic,
+    # and a pull quote in the same chapter that follows the phrase gets the same treatment
+    phrase = None
+    if idx in cfg.get("big_lists", []):
+        items = next((d for k, d in bl if k == "ul"), None)
+        if items and len(items) > 1:
+            ws = [it.rstrip(".").split() for it in items]
+            pre = 0
+            while all(len(w) > pre for w in ws) and len({w[pre] for w in ws}) == 1:
+                pre += 1
+            suf = 0
+            while all(len(w) > pre + suf for w in ws) and len({w[-1 - suf] for w in ws}) == 1:
+                suf += 1
+            if pre or suf:
+                phrase = (pre, suf)
     while i < len(bl):
         kind, data = bl[i]
         if kind == "p":
@@ -200,7 +215,8 @@ def chapter_html(slug, idx, title, md, cfg, meta):
                 i += 2
                 continue
             if any(text.startswith(p) for p in pulls):
-                out.append(f'<p class="pull" data-reveal>{para_html(data)}</p>')
+                ph = phrase_html(text, phrase, bl) if phrase else None
+                out.append(f'<p class="pull pull--phrase" data-reveal>{ph}</p>' if ph else f'<p class="pull" data-reveal>{para_html(data)}</p>')
             else:
                 out.append(f"<p>{para_html(data)}</p>")
         elif kind == "ul":
@@ -214,9 +230,38 @@ def chapter_html(slug, idx, title, md, cfg, meta):
             f'<span>{inline(title.rstrip(":").strip())}</span></h2><div class="ch-body">{"".join(out)}</div></section>')
 
 
+def split_phrase(text, pre, suf):
+    end = "." if text.endswith(".") else ""
+    w = text.rstrip(".").split()
+    mid = w[pre:len(w) - suf]
+    if not mid:
+        return None
+    head, tail = " ".join(w[:pre]), " ".join(w[len(w) - suf:])
+    return (f"{html.escape(head)} " if head else "") + f"<em>{html.escape(' '.join(mid))}</em>" + (f" {html.escape(tail)}" if tail else "") + end
+
+
+def phrase_html(text, phrase, bl):
+    items = next((d for k, d in bl if k == "ul"), [])
+    ref = items[0].rstrip(".").split() if items else []
+    w = text.rstrip(".").split()
+    pre, suf = phrase
+    if w[:pre] != ref[:pre] or (suf and w[-suf:] != ref[-suf:]):
+        return None
+    return split_phrase(text, pre, suf)
+
+
 def list_html(items, idx, cfg):
-    cls = "list list--big" if idx in cfg.get("big_lists", []) else "list"
-    return f'<ul class="{cls}">' + "".join(f"<li>{inline(it)}</li>" for it in items) + "</ul>"
+    if idx in cfg.get("big_lists", []):
+        ws = [it.rstrip(".").split() for it in items]
+        pre = 0
+        while all(len(w) > pre for w in ws) and len({w[pre] for w in ws}) == 1:
+            pre += 1
+        suf = 0
+        while all(len(w) > pre + suf for w in ws) and len({w[-1 - suf] for w in ws}) == 1:
+            suf += 1
+        lis = [split_phrase(it, pre, suf) or inline(it) for it in items]
+        return '<ul class="list list--big">' + "".join(f"<li>{li}</li>" for li in lis) + "</ul>"
+    return '<ul class="list">' + "".join(f"<li>{inline(it)}</li>" for it in items) + "</ul>"
 
 
 def stats_html(label, stats):
@@ -317,7 +362,7 @@ def page(slug, meta, body, cfg, nxt, others):
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../../fonts.css?v=7">
-<link rel="stylesheet" href="../projekat.css?v=1">
+<link rel="stylesheet" href="../projekat.css?v=4">
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
 </head>
 <body class="p p--{slug} has-{cfg["hero"]["type"]}" style="--accent:{cfg["accent"]}">
@@ -362,7 +407,7 @@ def page(slug, meta, body, cfg, nxt, others):
     <a class="link" href="https://www.linkedin.com/company/100072371/" rel="noopener">linkedin ↗</a>
   </div>
 </footer>
-<script src="../projekat.js?v=2" data-slug="{slug}"></script>
+<script src="../projekat.js?v=3" data-slug="{slug}"></script>
 </body>
 </html>
 """
