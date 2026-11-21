@@ -17,8 +17,8 @@ const CFG = {
   scrollDamp: 0.085,
   grain: 0.075,
   // timeline, as fractions of the hook scroll (5 screens)
-  title: { out: 0.04 },
-  text: { start: 0.06, span: 0.36, word: 0.06, blur: 10 },
+  title: { out: 0.075 },
+  text: { start: 0.07, span: 0.36, word: 0.06, blur: 10 },
   tension: { start: 0.55, end: 0.72 },
   // from the blast to the finished grid is one short stretch of scroll (~1 screen), scrubbed both ways.
   // Times below are in 'build seconds' along that stretch: hold = text holds as particles
@@ -38,17 +38,18 @@ const CFG = {
 };
 
 const PROJECTS = [
-  { id: "o-nama", kind: "logo", title: "o nama", tags: "daliah →", href: "#o-nama" },
-  { id: "cupra", img: "media/cupra1-hero.jpg", title: "Cupra", tags: "foto-video", href: "#radovi/cupra" },
-  { id: "kodeks", img: "media/kodeks-kejs.jpg", title: "Kodeks", tags: "integrisane · social", href: "#radovi/kodeks" },
-  { id: "bash", img: "media/bash-kejs.jpg", title: "Bash", tags: "integrisane · dizajn", href: "#radovi/bash" },
-  { id: "omg", img: "media/omg.jpg", title: "OMG", tags: "integrisane · web", href: "#radovi/omg" },
-  { id: "mirza", img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: "foto-video", href: "#radovi/mirza" },
+  { id: "o-nama", ar: 1.5, col: 0, kind: "logo", title: "o nama", tags: "daliah →", href: "#o-nama" },
+  { id: "cupra", ar: 0.75, col: 1, img: "media/cupra1-hero.jpg", title: "Cupra", tags: "foto-video", href: "#radovi/cupra" },
+  { id: "kodeks", ar: 1.5, col: 2, img: "media/kodeks-kejs.jpg", title: "Kodeks", tags: "integrisane · social", href: "#radovi/kodeks" },
+  { id: "bash", ar: 0.75, col: 0, img: "media/bash-kejs.jpg", title: "Bash", tags: "integrisane · dizajn", href: "#radovi/bash" },
+  { id: "omg", ar: 1.5, col: 1, img: "media/omg.jpg", title: "OMG", tags: "integrisane · web", href: "#radovi/omg" },
+  { id: "mirza", ar: 0.75, col: 2, img: "media/mirza_mustafagic.jpg", title: "Mirza Mustafagić", tags: "foto-video", href: "#radovi/mirza" },
 ];
 const CARDS = PROJECTS;
 const NC = CARDS.length;
 const GRID_N = PROJECTS.length;
-const ATLAS = { cols: 3, rows: 2, cw: 480, ch: 600 };
+const ATLAS = { cols: 3, rows: 2, cw: 640, ch: 640 }; // each card gets a sub-rectangle of its cell, in its own aspect
+const cellSize = (c) => (c.ar >= 1 ? [ATLAS.cw, ATLAS.cw / c.ar] : [ATLAS.ch * c.ar, ATLAS.ch]);
 const FORM_DONE = CFG.explode.hold + CFG.form.delay + (NC - 1) * CFG.form.stagger + CFG.form.duration;
 
 const body = document.body;
@@ -214,6 +215,7 @@ const CHAPTERS = { praznina: "01", napetost: "02", eksplozija: "03", radovi: "04
 const progressNum = document.getElementById("progress-num");
 const progressFill = document.getElementById("progress-fill");
 let lastJitter = 0, jx = 0, jy = 0;
+let titleParticles = false; // true once DALIAH has been sampled into particles: the letters then hand over instead of fading out
 
 function updateDOM(p, now, introT, exploded, chapterName) {
   // DALIAH: letters arrive after the loader, and lift off into the fog on the first scroll
@@ -221,9 +223,10 @@ function updateDOM(p, now, introT, exploded, chapterName) {
   for (let i = 0; i < nL; i++) {
     const inT = smooth(0, 1, (introT - 0.35 - i * 0.09) / 1.1);
     const c = (i - (nL - 1) / 2) / nL;
-    const outT = smooth(0.002 + Math.abs(c) * 0.01, CFG.title.out, p);
+    const outT = titleParticles ? 0 : smooth(0.002 + Math.abs(c) * 0.01, CFG.title.out, p);
+    const gone = titleParticles ? smooth(0, 0.004, p) : 0;
     const l = letters[i];
-    l.style.opacity = (inT * (1 - outT)).toFixed(3);
+    l.style.opacity = (inT * (1 - outT) * (1 - gone)).toFixed(3);
     const blur = (1 - inT) * 14 + outT * 16;
     l.style.filter = blur > 0.05 ? `blur(${blur.toFixed(2)}px)` : "none";
     l.style.transform = `translate3d(${(c * outT * 0.9).toFixed(3)}em, ${((1 - inT) * 0.12 - outT * 0.25).toFixed(3)}em, 0) scale(${(1 + outT * 0.25).toFixed(3)})`;
@@ -311,16 +314,17 @@ async function buildAtlas() {
   const imgs = await Promise.all(CARDS.map((c) => loadImage(c.kind === "logo" ? "media/daliah-logo.svg" : c.img)));
   CARDS.forEach((c, i) => {
     const x = (i % cols) * cw, y = Math.floor(i / cols) * ch, im = imgs[i];
+    const [w0, h0] = cellSize(c);
     if (c.kind === "logo") {
-      g.fillStyle = "#efe8f1"; g.fillRect(x, y, cw, ch);
-      if (im) { const h = ch * 0.5, w = h * ((im.width / im.height) || 0.674); g.drawImage(im, x + (cw - w) / 2, y + (ch - h) / 2, w, h); }
+      g.fillStyle = "#efe8f1"; g.fillRect(x, y, w0, h0);
+      if (im) { const h = h0 * 0.42, w = h * ((im.width / im.height) || 0.674); g.drawImage(im, x + (w0 - w) / 2, y + (h0 - h) / 2, w, h); }
       return;
     }
     if (!im) return;
-    const s = Math.max(cw / im.width, ch / im.height); // cover
+    const s = Math.max(w0 / im.width, h0 / im.height); // cover
     const w = im.width * s, h = im.height * s;
-    g.save(); g.beginPath(); g.rect(x, y, cw, ch); g.clip();
-    g.drawImage(im, x + (cw - w) / 2, y + (ch - h) / 2, w, h);
+    g.save(); g.beginPath(); g.rect(x, y, w0, h0); g.clip();
+    g.drawImage(im, x + (w0 - w) / 2, y + (h0 - h) / 2, w, h);
     g.restore();
   });
   const tex = new THREE.CanvasTexture(cv);
@@ -513,28 +517,38 @@ function startGL() {
       rot0: new THREE.Vector3(r(-0.45, 0.45), r(-0.6, 0.6), r(-0.18, 0.18)), // the tilt it forms at
       zOff: -r(1.4, 2.6),                                                    // and how far back
       grid: new THREE.Vector3(),
-      cell: new THREE.Vector4(col / ATLAS.cols, 1 - (row + 1) / ATLAS.rows, 1 / ATLAS.cols, 1 / ATLAS.rows),
-      pos: new THREE.Vector3(), quat: new THREE.Quaternion(), size: new THREE.Vector2(1, 1.25),
+      cell: (() => { const [w, h] = cellSize(c); return new THREE.Vector4(col / ATLAS.cols, 1 - (row * ATLAS.ch + h) / (ATLAS.rows * ATLAS.ch), w / (ATLAS.cols * ATLAS.cw), h / (ATLAS.rows * ATLAS.ch)); })(),
+      pos: new THREE.Vector3(), quat: new THREE.Quaternion(), size: new THREE.Vector2(1, 1.25), gsize: new THREE.Vector2(1, 1.25),
       prog: 0, hover: 0,
     };
   });
-  let cardW = 1.6, cardH = 2.0;
   const restCam = new THREE.Vector3(0, 0, CFG.camera.z - CFG.camera.dolly);
+  // masonry: equal-width columns, each card in its own aspect (landscape or portrait)
   function layoutGrid() {
     const aspect = innerWidth / innerHeight;
     const D = CFG.grid.distance;
     const Hv = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), Wv = Hv * aspect;
-    const cols = aspect >= 1 ? 3 : 2, rows = Math.ceil(GRID_N / cols);
-    const gap = Hv * 0.035, label = Hv * (aspect >= 1 ? 0.06 : 0.045);
-    const areaW = Wv * (aspect >= 1 ? 0.8 : 0.86), areaH = Hv * (aspect >= 1 ? 0.8 : 0.72);
-    let ch = (areaH - (rows - 1) * (gap + label) - label) / rows, cw = ch * 0.8;
-    if (cols * cw + (cols - 1) * gap > areaW) { cw = (areaW - (cols - 1) * gap) / cols; ch = cw / 0.8; }
-    cardW = cw; cardH = ch;
-    const totalW = cols * cw + (cols - 1) * gap, totalH = rows * ch + (rows - 1) * (gap + label) + label;
-    for (let i = 0; i < GRID_N; i++) {
-      const c = i % cols, r = Math.floor(i / cols);
-      cards[i].grid.set(-totalW / 2 + cw / 2 + c * (cw + gap), totalH / 2 - ch / 2 - r * (ch + gap + label) - Hv * 0.01, restCam.z - D);
-    }
+    const cols = aspect >= 1 ? 3 : 2;
+    const gap = Hv * (aspect >= 1 ? 0.035 : 0.025), label = Hv * (aspect >= 1 ? 0.06 : 0.045);
+    const areaW = Wv * (aspect >= 1 ? 0.8 : 0.88), areaH = Hv * (aspect >= 1 ? 0.8 : 0.74);
+    // desktop: the columns set in PROJECTS; phone: each card goes to the shorter column
+    const colOf = [], sum = new Array(cols).fill(0), count = new Array(cols).fill(0);
+    PROJECTS.forEach((p, i) => {
+      const c = cols === 3 ? p.col : (sum[0] <= sum[1] ? 0 : 1);
+      colOf[i] = c; sum[c] += 1 / p.ar; count[c]++;
+    });
+    const fixed = (c) => (count[c] - 1) * (gap + label) + label;
+    let cw = (areaW - (cols - 1) * gap) / cols;
+    for (let c = 0; c < cols; c++) if (count[c]) cw = Math.min(cw, (areaH - fixed(c)) / sum[c]);
+    const colH = sum.map((sm, c) => cw * sm + fixed(c));
+    const totalW = cols * cw + (cols - 1) * gap, totalH = Math.max(...colH);
+    const y = new Array(cols).fill(0);
+    cards.forEach((card, i) => {
+      const c = colOf[i], h = cw / PROJECTS[i].ar;
+      card.gsize.set(cw, h);
+      card.grid.set(-totalW / 2 + cw / 2 + c * (cw + gap), totalH / 2 - y[c] - h / 2 - Hv * 0.01, restCam.z - D);
+      y[c] += h + gap + label;
+    });
   }
 
   const cardUniformsM = cards.map(() => new THREE.Matrix4());
@@ -747,6 +761,83 @@ function startGL() {
     shardGeo.attributes.aDir.needsUpdate = true;
   }
 
+
+  // ---------- DALIAH as particles: the wordmark's pixels, which come apart on the first scroll
+  const titleCount = isPhone ? 5000 : 12000;
+  const tPos = new Float32Array(titleCount * 3), tSeed = new Float32Array(titleCount * 4);
+  const titleGeo = new THREE.BufferGeometry();
+  titleGeo.setAttribute("position", new THREE.BufferAttribute(tPos, 3));
+  titleGeo.setAttribute("aSeed", new THREE.BufferAttribute(tSeed, 4));
+  for (let i = 0; i < titleCount * 4; i++) tSeed[i] = Math.random();
+  const titleMat = new THREE.ShaderMaterial({
+    transparent: true, depthTest: false, depthWrite: false,
+    blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor,
+    uniforms: { uT: { value: 0 }, uVis: { value: 0 }, uTime: { value: 0 }, uDpr: { value: 1 }, uX0: { value: 0 }, uXW: { value: 1 } },
+    vertexShader: /* glsl */ `
+      attribute vec4 aSeed;
+      uniform float uT, uVis, uTime, uDpr, uX0, uXW;
+      varying float vA, vM;
+      void main(){
+        float sweep = (position.x - uX0) / uXW;
+        float start = aSeed.w * 0.5 + sweep * 0.2;           // a ragged front, drifting left to right
+        float t = clamp((uT - start) / 0.5, 0.0, 1.0);
+        float e = 1.0 - pow(1.0 - t, 3.0);
+        vec3 dir = vec3((aSeed.x - 0.5) * 1.6 + 0.35, 0.3 + aSeed.y * 1.4, (aSeed.z - 0.35) * 3.0);
+        vec3 p = position + dir * e * 1.2;
+        p.x += sin(uTime * 1.3 + aSeed.y * 6.28 + p.y * 2.0) * 0.06 * e;
+        p.y += cos(uTime * 1.1 + aSeed.x * 6.28) * 0.04 * e;
+        vec4 mv = modelViewMatrix * vec4(p, 1.0);
+        float z = max(0.2, -mv.z);
+        gl_Position = projectionMatrix * mv;
+        gl_PointSize = uVis > 0.0 ? (1.7 + aSeed.z * 1.1 + e * 1.6) * uDpr * clamp(6.3 / z, 0.5, 3.0) : 0.0;
+        vA = uVis * (1.0 - smoothstep(0.55, 1.0, t)) * (0.32 + 0.1 * aSeed.x);
+        vM = e;
+      }`,
+    fragmentShader: /* glsl */ `
+      precision highp float;
+      varying float vA, vM;
+      void main(){
+        float d = length(gl_PointCoord - 0.5) * 2.0;
+        if (d > 1.0) discard;
+        float a = smoothstep(1.0, 0.3, d) * vA;
+        vec3 col = mix(vec3(0.93, 0.88, 0.96), vec3(0.78, 0.62, 0.9), vM);
+        gl_FragColor = vec4(col * a, a);
+      }`,
+  });
+  const titleDust = new THREE.Points(titleGeo, titleMat);
+  titleDust.frustumCulled = false; titleDust.renderOrder = 9400; titleDust.visible = false;
+  scene.add(titleDust);
+
+  function captureTitle() {
+    const r = letterBox.getBoundingClientRect();
+    if (r.width < 10 || r.height < 2) return;
+    const cv = document.createElement("canvas");
+    cv.width = Math.ceil(r.width); cv.height = Math.ceil(r.height);
+    const g = cv.getContext("2d", { willReadFrequently: true });
+    g.scale(cv.width / VB.w, cv.height / VB.h); g.translate(-VB.x, -VB.y); g.fillStyle = "#fff";
+    for (const path of titleEl.querySelectorAll(".wordmark path")) g.fill(new Path2D(path.getAttribute("d")));
+    const data = g.getImageData(0, 0, cv.width, cv.height).data;
+    const pts = [];
+    for (let y = 0; y < cv.height; y++) for (let x = 0; x < cv.width; x++) if (data[(y * cv.width + x) * 4 + 3] > 110) pts.push(r.left + x, r.top + y);
+    if (!pts.length) return;
+    // where the camera sits before any scrolling, so the particles start exactly under the letters
+    const cam = camera.clone();
+    cam.position.set(0, 0, CFG.camera.z); cam.rotation.set(0, 0, 0); cam.updateMatrixWorld(true);
+    const v = new THREE.Vector3(), D = CFG.explode.textDist;
+    let x0 = 1e9, x1 = -1e9;
+    for (let i = 0; i < titleCount; i++) {
+      const k = Math.floor(Math.random() * (pts.length / 2)) * 2;
+      const sx = pts[k] + Math.random() - 0.5, sy = pts[k + 1] + Math.random() - 0.5;
+      v.set((sx / innerWidth) * 2 - 1, -(sy / innerHeight) * 2 + 1, 0.5).unproject(cam).sub(cam.position).normalize();
+      v.multiplyScalar(D / -v.z).add(cam.position);
+      tPos[i * 3] = v.x; tPos[i * 3 + 1] = v.y; tPos[i * 3 + 2] = v.z;
+      x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x);
+    }
+    titleMat.uniforms.uX0.value = x0; titleMat.uniforms.uXW.value = Math.max(0.001, x1 - x0);
+    titleGeo.attributes.position.needsUpdate = true;
+    titleParticles = true;
+  }
+
   // ---------- post
   const postMat = new THREE.ShaderMaterial({
     vertexShader: quadVert, depthTest: false, depthWrite: false,
@@ -806,12 +897,13 @@ function startGL() {
     fogMat.uniforms.uRes.value.set(W, H);
     postMat.uniforms.uRes.value.set(W, H);
     mouseUniforms.uRes.value.set(W, H);
-    dustMat.uniforms.uPx.value = H; shardMat.uniforms.uPx.value = H;
+    dustMat.uniforms.uPx.value = H; shardMat.uniforms.uPx.value = H; titleMat.uniforms.uDpr.value = dpr;
     bgMat.uniforms.tFog.value = fogRT.texture;
     postMat.uniforms.tScene.value = sceneRT.texture;
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
     layoutGrid();
+    captureTitle();
     readScroll();
   }
   addEventListener("resize", resize);
@@ -836,7 +928,7 @@ function startGL() {
   });
 
   let revealStart = 0;
-  runLoader(() => { body.classList.add("is-ready"); revealStart = performance.now(); applyJump(); });
+  runLoader(() => { captureTitle(); body.classList.add("is-ready"); revealStart = performance.now(); applyJump(); });
 
   // ---------- frame loop
   const clock = new THREE.Clock();
@@ -918,7 +1010,7 @@ function startGL() {
       tmpE.set(state.smy * CFG.cursor.tilt.x * tiltOn * (0.6 + c.hover * 0.6), state.smx * CFG.cursor.tilt.y * tiltOn * (0.6 + c.hover * 0.6), 0);
       tmpQ2.setFromEuler(tmpE);
       c.quat.copy(tmpQ).multiply(tmpQ2);
-      c.size.set(cardW, cardH);
+      c.size.copy(c.gsize);
       cardUniformsM[i].compose(c.pos, c.quat, one);
       cardUniformsS[i].copy(c.size);
       cardUniformsP[i] = c.prog;
@@ -966,6 +1058,12 @@ function startGL() {
     dustMat.uniforms.uAlpha.value = easedReveal * (1 - 0.35 * built);
     dustMat.uniforms.uAgitate.value = k * pre;
     dustMat.uniforms.uBlast.value = exploded && blastT > 0 ? (1 - Math.exp(-blastT * 2.5)) * Math.exp(-blastT * 0.6) : 0;
+
+    const tHand = smooth(0, 0.004, p), titleLive = body.classList.contains("is-ready") && !exploded && p < CFG.title.out + 0.02;
+    titleMat.uniforms.uT.value = smooth(0.003, CFG.title.out, p);
+    titleMat.uniforms.uVis.value = titleLive ? tHand : 0;
+    titleMat.uniforms.uTime.value = T;
+    titleDust.visible = titleLive && p > 0.0005;
 
     shardMat.uniforms.uTime.value = T;
     shardMat.uniforms.uFocus.value = focus;

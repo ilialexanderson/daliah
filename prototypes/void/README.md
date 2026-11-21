@@ -32,3 +32,7 @@ Review aid: `__hook.paused = true; __hook.step(frames)` in the console steps the
 
 All tunable values are in `CFG` at the top of `void.js`. Fonts, images and three.js are
 self-hosted (images in `media/`, resized copies from `content/projects`).
+
+## Update 2026-11-21
+- The grid is a masonry: equal-width columns, cards in landscape (3:2) or portrait (3:4), set per project in `PROJECTS` (`ar`, `col`); the phone layout puts each card in the shorter of two columns. Each card's atlas cell is cut to its own aspect.
+- DALIAH is sampled from the wordmark into ~12k particles (`captureTitle`). On the first scroll the letters hand over to the particles, which come apart and drift off (`CFG.title.out`), instead of fading.
