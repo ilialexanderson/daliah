@@ -362,7 +362,7 @@ def page(slug, meta, body, cfg, nxt, others):
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preload" href="/fonts/plus-jakarta-sans-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="../../fonts.css?v=7">
-<link rel="stylesheet" href="../projekat.css?v=4">
+<link rel="stylesheet" href="../projekat.css?v=6">
 <script type="application/ld+json">{json.dumps(ld, ensure_ascii=False)}</script>
 </head>
 <body class="p p--{slug} has-{cfg["hero"]["type"]}" style="--accent:{cfg["accent"]}">
@@ -407,7 +407,7 @@ def page(slug, meta, body, cfg, nxt, others):
     <a class="link" href="https://www.linkedin.com/company/100072371/" rel="noopener">linkedin ↗</a>
   </div>
 </footer>
-<script src="../projekat.js?v=3" data-slug="{slug}"></script>
+<script src="../projekat.js?v=4" data-slug="{slug}"></script>
 </body>
 </html>
 """

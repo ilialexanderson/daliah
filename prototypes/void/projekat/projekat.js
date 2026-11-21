@@ -3,10 +3,10 @@
 (() => {
   const I18N = {
     bs: { all: "svi radovi", contact: "kontakt", client: "klijent", year: "godina", services: "usluge", read: "čitanje", next: "još jedan projekat",
-      play: "pogledaj film", visit: "posjeti", foot: "imate projekat? <em>pričajmo</em>.", other: "EN", close: "zatvori",
+      play: "pogledaj film", open: "otvori", visit: "posjeti", foot: "imate projekat? <em>pričajmo</em>.", other: "EN", close: "zatvori",
       tags: { integrisane: "integrisane kampanje", "foto-video": "foto i video", dizajn: "dizajn", social: "društvene mreže", web: "web" } },
     en: { all: "all work", contact: "contact", client: "client", year: "year", services: "services", read: "read", next: "another project",
-      play: "watch the film", visit: "visit", foot: "got a project? <em>let's talk</em>.", other: "BS", close: "close",
+      play: "watch the film", open: "open", visit: "visit", foot: "got a project? <em>let's talk</em>.", other: "BS", close: "close",
       tags: { integrisane: "integrated campaigns", "foto-video": "photo and video", dizajn: "design", social: "social media", web: "web" } },
   };
   let LANG = "bs";
@@ -57,6 +57,13 @@
     }
   }
   sizeFrames();
+
+  // full-width bands: a label that says it opens, and the photo pans inside the band as it passes
+  const bands = $$(".m--full .m-cell").map((cell) => {
+    const tag = document.createElement("span"); tag.className = "m-open mono"; tag.setAttribute("aria-hidden", "true");
+    tag.innerHTML = `<span>⤢</span><span>${T.open}</span>`; cell.appendChild(tag);
+    return cell.querySelector("img");
+  });
 
   // ---- design hero: equal visual weight per piece (width ∝ √aspect), laid out as one row when fanned ----
   const pieces = $$(".hd-piece");
@@ -200,6 +207,12 @@
         const view = img.parentElement, max = img.offsetHeight - view.clientHeight;
         img.style.setProperty("--sy", (-Math.max(0, max) * p).toFixed(1) + "px");
       });
+    }
+    for (const im of bands) {
+      const r = im.getBoundingClientRect();
+      if (r.bottom < 0 || r.top > innerHeight) continue;
+      const k = clamp((innerHeight - r.top) / (innerHeight + r.height), 0, 1);
+      im.style.setProperty("--oy", (15 + k * 70).toFixed(1) + "%");
     }
     for (const t of tilts) {
       t.x = lerp(t.x, t.tx, 0.09); t.y = lerp(t.y, t.ty, 0.09);
