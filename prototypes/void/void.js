@@ -523,8 +523,11 @@ function startGL() {
       cell: (() => { const [w, h] = cellSize(c); return new THREE.Vector4(col / ATLAS.cols, 1 - (row * ATLAS.ch + h) / (ATLAS.rows * ATLAS.ch), w / (ATLAS.cols * ATLAS.cw), h / (ATLAS.rows * ATLAS.ch)); })(),
       pos: new THREE.Vector3(), quat: new THREE.Quaternion(), size: new THREE.Vector2(1, 1.25), gsize: new THREE.Vector2(1, 1.25),
       prog: 0, hover: 0,
+      inset: new THREE.Vector4(), // set below from a seeded sequence
     };
   });
+  const rInset = mulberry(77);
+  cards.forEach((c) => { const r = (lo, hi) => lo + rInset() * (hi - lo); c.inset.set(r(0.012, 0.065), r(0.012, 0.065), r(0.012, 0.07), r(0.012, 0.07)); });
   const restCam = new THREE.Vector3(0, 0, CFG.camera.z - CFG.camera.dolly);
   // masonry: equal-width columns, each card in its own aspect (landscape or portrait)
   function layoutGrid() {
@@ -569,8 +572,15 @@ function startGL() {
     uniform sampler2D uAtlas;
     uniform vec4 uCell;
     uniform float uProg, uBlur, uHover, uDim, uLightAmt, uLightR, uGhost, uAspect;
+    uniform vec4 uInset;   // where the ghost frame sits on each side (left, right, top, bottom): uneven, so it is never symmetrical
     uniform vec2 uMouse, uRes;
     ${landedChunk}
+    // how skin-like a (blurred) patch of the photo is: the outlines keep off faces and hands
+    float skinAt(vec2 u, float lod){
+      vec3 k = texture2D(uAtlas, uCell.xy + clamp(u, 0.004, 0.996) * uCell.zw, lod).rgb;
+      float l = dot(k, vec3(0.299, 0.587, 0.114)), rg = k.r - k.g, gb = k.g - k.b;
+      return smoothstep(0.02, 0.06, rg) * (1.0 - smoothstep(0.16, 0.30, rg)) * smoothstep(0.0, 0.035, gb) * smoothstep(0.16, 0.34, l) * (1.0 - smoothstep(0.86, 0.97, l));
+    }
     float lum(vec2 u){ return dot(texture2D(uAtlas, uCell.xy + clamp(u, 0.004, 0.996) * uCell.zw, 1.0).rgb, vec3(0.299, 0.587, 0.114)); }
     void main(){
       vec2 uv = vUv;
@@ -601,8 +611,10 @@ function startGL() {
         float bl = lum(uv - e), b = lum(uv + vec2(0.0, -e.y)), br = lum(uv + vec2(e.x, -e.y));
         float gx = (tr + 2.0 * r + br) - (tl + 2.0 * l + bl);
         float gy = (tl + 2.0 * t + tr) - (bl + 2.0 * b + br);
-        float ln = smoothstep(0.55, 1.4, length(vec2(gx, gy))) * (0.3 + 0.7 * vn2(uv * 7.0 + 1.3));
-        float frame = 1.0 - smoothstep(0.0, 0.0028, abs(edge - 0.022));
+        float skin = max(skinAt(uv, 2.5), skinAt(uv, 4.5) * 0.9);
+        float ln = smoothstep(0.55, 1.4, length(vec2(gx, gy))) * (0.3 + 0.7 * vn2(uv * 7.0 + 1.3)) * (1.0 - smoothstep(0.12, 0.45, skin));
+        float fd = max(max(uInset.x - uv.x, uv.x - (1.0 - uInset.y)), max(uInset.w - uv.y, uv.y - (1.0 - uInset.z)));
+        float frame = 1.0 - smoothstep(0.0, 0.0028, abs(fd));
         c += vec3(0.97, 0.93, 1.0) * (ln * 0.55 + frame * 0.5) * uGhost * (1.0 - uBlur);
       }
       vec2 d = (gl_FragCoord.xy - uMouse) / uRes.y;
@@ -619,7 +631,7 @@ function startGL() {
       vertexShader: cardVert, fragmentShader: cardFrag,
       uniforms: {
         uAtlas: atlasRef, uCell: { value: c.cell }, uProg: { value: 0 }, uBlur: { value: 0 }, uHover: { value: 0 }, uDim: { value: 1 },
-        uLightAmt: { value: 0 }, uLightR: { value: CFG.cursor.lightRadius }, uGhost: { value: GHOST }, uAspect: { value: 1 }, ...mouseUniforms,
+        uLightAmt: { value: 0 }, uLightR: { value: CFG.cursor.lightRadius }, uGhost: { value: GHOST }, uAspect: { value: 1 }, uInset: { value: c.inset }, ...mouseUniforms,
       },
     });
     const mesh = new THREE.Mesh(cardGeo, mat);
