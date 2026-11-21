@@ -274,7 +274,6 @@ body.no-motion .tile-meta { position: static; }
   min-height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: clamp(20px, 3.2vw, 40px);
   padding: 16vh calc(var(--gutter) + 22px) 9vh;
   background: linear-gradient(transparent, var(--void) 22%);
-  border-top: 1px solid var(--hair);
 }
 .contact-glow {
   position: absolute; z-index: -1; left: 50%; top: 62%; width: 90vmax; height: 60vmax; transform: translate(-50%, -50%);
@@ -304,7 +303,7 @@ body.no-motion .tile-meta { position: static; }
 .contact-copy:hover, .contact-copy:focus-visible { color: var(--ink-strong); border-color: var(--hair-strong); }
 .contact-phone { width: fit-content; text-decoration: none; color: var(--ink); font-size: clamp(18px, 2vw, 28px); letter-spacing: -0.01em; }
 .contact-phone:hover { color: var(--lilac); }
-.contact-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: clamp(24px, 8vh, 90px); padding-top: 18px; border-top: 1px solid var(--hair); color: var(--ink-dim); }
+.contact-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 28px; margin-top: clamp(24px, 8vh, 90px); padding-top: 18px; color: var(--ink-dim); }
 .contact-place { margin-left: auto; }
 @media (max-width: 720px) { .contact-place { margin-left: 0; width: 100%; } }
 
@@ -319,3 +318,7 @@ body.no-motion .tile-meta { position: static; }
 .tile--cta .tile-meta { display: none; }
 body.no-motion .tile--cta .tile-meta { display: flex; }
 .tile.is-narrow .tile-tags { display: none; }
+
+/* past the hook, the corner chrome (frame, skip link, progress, scroll hint) fades out so it never sits on the contact section */
+body.is-ready .chrome .frame, body.is-ready .chrome .skip, body.is-ready .chrome .progress, body.is-ready .chrome .scroll-hint { opacity: calc(1 - var(--past, 0)); transition: opacity .3s linear; }
+html[style*="--past: 1"] .chrome .skip { pointer-events: none; }

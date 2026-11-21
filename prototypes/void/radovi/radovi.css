@@ -69,6 +69,6 @@ main { padding: 0 var(--gutter); max-width: 1680px; margin: 0 auto; }
 .foot { max-width: 1680px; margin: clamp(80px, 16vh, 180px) auto 0; padding: 0 var(--gutter) 9vh; }
 .foot-line { margin: 0 0 28px; font-size: clamp(32px, 5vw, 80px); letter-spacing: -0.03em; line-height: 1.02; color: var(--ink-strong); }
 .foot-line em { font-family: var(--accent); font-style: italic; font-weight: 600; font-size: 1.37em; line-height: .8; color: var(--lilac); letter-spacing: -0.01em; }
-.foot-links { display: flex; flex-wrap: wrap; gap: 12px 30px; padding-top: 18px; border-top: 1px solid var(--hair); }
+.foot-links { display: flex; flex-wrap: wrap; gap: 12px 30px; padding-top: 18px; }
 
 @media (prefers-reduced-motion: reduce) { .tile, .thumb img, .thumb::after, .thumb::before { transition: none; } }

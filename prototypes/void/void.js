@@ -78,6 +78,7 @@ const LANG = (() => {
   } catch { return "bs"; }
 })();
 const T = I18N[LANG];
+const GHOST = new URLSearchParams(location.search).get("look") === "plain" ? 0 : 1; // see-through photos with faint white outlines; ?look=plain turns it off
 document.documentElement.lang = LANG;
 document.title = T.title;
 for (const [id, html] of Object.entries(T.html)) { const el = document.getElementById(id); if (el) el.innerHTML = html; }
@@ -391,8 +392,9 @@ function startGL() {
         vec2 s = uv; float occ = 0.0;
         for (int i = 0; i < 8; i++){ s += stepv; occ += fogLite(s); }
         float shaft = exp(-occ * 0.32);
-        float ang = atan((uv - lp).y * asp.y, (uv - lp).x * asp.x);
-        float rays = 0.6 + 0.4 * noise(vec3(ang * 5.0, uTime * 0.05, 0.0)) * noise(vec3(ang * 11.0, uTime * 0.03, 4.0));
+        // rays vary with direction from the light; sampled by direction vector (not atan) so there is no seam where the angle wraps
+        vec2 dir = normalize((uv - lp) * asp + 1e-5);
+        float rays = 0.6 + 0.4 * noise(vec3(dir * 5.0, uTime * 0.05)) * noise(vec3(dir * 11.0, uTime * 0.03 + 4.0));
         rays = mix(1.0, rays, smoothstep(0.04, 0.35, ld));
 
         vec3 base = vec3(0.082, 0.043, 0.090);                // #150b17
@@ -566,9 +568,10 @@ function startGL() {
     varying vec2 vUv;
     uniform sampler2D uAtlas;
     uniform vec4 uCell;
-    uniform float uProg, uBlur, uHover, uDim, uLightAmt, uLightR;
+    uniform float uProg, uBlur, uHover, uDim, uLightAmt, uLightR, uGhost, uAspect;
     uniform vec2 uMouse, uRes;
     ${landedChunk}
+    float lum(vec2 u){ return dot(texture2D(uAtlas, uCell.xy + clamp(u, 0.004, 0.996) * uCell.zw, 1.0).rgb, vec3(0.299, 0.587, 0.114)); }
     void main(){
       vec2 uv = vUv;
       float l = landed(clamp((uProg - 0.3) / 0.7, 0.0, 1.0), uv);
@@ -590,12 +593,24 @@ function startGL() {
       c = mix(grade(c), c, uHover * 0.85);                       // hover shows the original colours
       c *= uDim * (1.0 + uHover * 0.1);
       c = mix(c, vec3(0.95, 0.9, 0.97), (1.0 - smoothstep(0.0, 0.006, edge)) * (0.18 + uHover * 0.5) * (1.0 - uBlur));
+      if (uGhost > 0.0) {
+        // faint white drawing over the photo: the strongest edges inside it (Sobel on luminance) and an inset frame
+        vec2 e = vec2(1.0 / 260.0, uAspect / 260.0);
+        float tl = lum(uv + vec2(-e.x, e.y)), t = lum(uv + vec2(0.0, e.y)), tr = lum(uv + e);
+        float l = lum(uv + vec2(-e.x, 0.0)), r = lum(uv + vec2(e.x, 0.0));
+        float bl = lum(uv - e), b = lum(uv + vec2(0.0, -e.y)), br = lum(uv + vec2(e.x, -e.y));
+        float gx = (tr + 2.0 * r + br) - (tl + 2.0 * l + bl);
+        float gy = (tl + 2.0 * t + tr) - (bl + 2.0 * b + br);
+        float ln = smoothstep(0.55, 1.4, length(vec2(gx, gy))) * (0.3 + 0.7 * vn2(uv * 7.0 + 1.3));
+        float frame = 1.0 - smoothstep(0.0, 0.0028, abs(edge - 0.022));
+        c += vec3(0.97, 0.93, 1.0) * (ln * 0.55 + frame * 0.5) * uGhost * (1.0 - uBlur);
+      }
       vec2 d = (gl_FragCoord.xy - uMouse) / uRes.y;
       c += vec3(0.62, 0.5, 0.7) * exp(-dot(d, d) / (uLightR * uLightR)) * uLightAmt;
       vec3 glow = vec3(0.86, 0.74, 0.94);
       c = mix(glow, c, rev);
       c = mix(c, vec3(0.92, 0.86, 0.96), line * (1.0 - rev));
-      float a = max((rev + front * 0.16) * smoothstep(0.0, 0.004 + uBlur * 0.05, edge), line * 0.55);
+      float a = max((rev * (1.0 - 0.2 * uGhost) + front * 0.16) * smoothstep(0.0, 0.004 + uBlur * 0.05, edge), line * 0.55);
       gl_FragColor = vec4(c, a);
     }`;
   cards.forEach((c) => {
@@ -604,7 +619,7 @@ function startGL() {
       vertexShader: cardVert, fragmentShader: cardFrag,
       uniforms: {
         uAtlas: atlasRef, uCell: { value: c.cell }, uProg: { value: 0 }, uBlur: { value: 0 }, uHover: { value: 0 }, uDim: { value: 1 },
-        uLightAmt: { value: 0 }, uLightR: { value: CFG.cursor.lightRadius }, ...mouseUniforms,
+        uLightAmt: { value: 0 }, uLightR: { value: CFG.cursor.lightRadius }, uGhost: { value: GHOST }, uAspect: { value: 1 }, ...mouseUniforms,
       },
     });
     const mesh = new THREE.Mesh(cardGeo, mat);
@@ -1026,7 +1041,7 @@ function startGL() {
       const dist = tmpV.copy(c.pos).sub(camera.position).dot(fwd);
       const coc = Math.min(1, Math.abs(dist - focus) / Math.max(dist, 0.1) * 1.7);
       const u = c.mesh.material.uniforms;
-      u.uProg.value = c.prog;
+      u.uProg.value = c.prog; u.uAspect.value = c.size.x / c.size.y;
       u.uBlur.value = coc;
       u.uDim.value = 1 - 0.45 * smooth(9, 20, dist);
       u.uHover.value = c.hover;
@@ -1042,6 +1057,7 @@ function startGL() {
     const past = clamp01(1 - voidEl.getBoundingClientRect().bottom / innerHeight);
     canvas.style.opacity = (1 - past).toFixed(3);
     gridUI.style.setProperty("--past", past.toFixed(3));
+    document.documentElement.style.setProperty("--past", past.toFixed(3));
     gridUI.classList.toggle("is-past", past > 0.15);
     if (exploded) {
       for (let i = 0; i < GRID_N; i++) {
