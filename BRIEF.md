@@ -101,7 +101,7 @@ Muted, cinematic, professional. Not neon, not gamey.
 - Background: deep purple void, `#150b17`, with fog tinted from brand purple `#642969`, a lavender light, depth blur and film grain. No bloom. (Changed from grey-teal `#0d1113` by the client, 2026-11-20.)
 - UI chrome: 1 px hairlines, monospace labels.
 - The brand palette (#642969, #DF769C, #EBA342, #A29342, #D75E3A, #5F7E94) appears only inside the case study cards, never as glow.
-- Typography: not decided. Propose two options before building, don't guess. Ask for the Hubtown screenshots if type or timing decisions need them.
+- Typography (decided 2026-11-21): Plus Jakarta Sans for text; Cormorant Garamond italic (600) for highlight words only, in brand purple lifted for the dark void (`#c9a2cf`); IBM Plex Mono for the hairline chrome labels. The DALIAH title uses the letters of the logo wordmark, not a font. All self-hosted.
 
 ## Hook technical spec
 
@@ -284,7 +284,8 @@ The unglamorous basics. None of this is visible, all of it is expected. Build it
 
 - [ ] Final list of 6–9 case studies, ranked by strength
 - [ ] Which thumbnail represents each case study as a hook card (one strong still each)
-- [ ] Hook typography (two options to be proposed) and timing (Hubtown screenshots)
+- [x] Hook typography: Plus Jakarta Sans + Cormorant Garamond italic for highlights (2026-11-21)
+- [ ] Hook timing (Hubtown screenshots)
 - [ ] Copy for the short about-us page the logo tile links to
 - [ ] Team: who's on it, and whether everyone is OK with clips/photos
 - [ ] Bosnian only, or Bosnian + English
