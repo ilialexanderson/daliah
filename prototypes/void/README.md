@@ -15,11 +15,11 @@ What it shows:
 2. **napetost**: glow, slight scale, 24 fps tremor in the text, the air and the camera.
 3. **eksplozija**: the tagline's own pixels become ~22k particles (8k on phones); they hold
    the text for a beat, then burst (flash, smear, a boom if sound is on).
-4. **radovi**: from here it runs on time, not scroll. The particles fly straight into the
-   grid and build the 6 cards one after another; each card's image appears only where its
-   particles have landed. All cards are built about 2.3 s after the blast. Logo tile first
-   (links to "o nama"); HTML links and labels sit over the projected cards.
-   Scrolling back above the explosion rebuilds the text.
+4. **radovi**: over one short stretch of scroll (about a screen, scrubbable both ways) the
+   particles fly straight into the grid. For each card, particles first draw its outline,
+   then fill the inside, and the image appears only where they have landed. The 6 cards
+   build one after another. Logo tile first (links to "o nama"); HTML links and labels sit
+   over the projected cards. Scrolling back above the explosion rebuilds the text.
 
 Cursor layer (grid only, off on touch): card tilt, camera parallax, a soft light on the
 cards and a displacement push in the post pass. Values in `CFG.cursor`.

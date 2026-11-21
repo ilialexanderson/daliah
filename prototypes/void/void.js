@@ -18,11 +18,12 @@ const CFG = {
   grain: 0.075,
   // timeline, as fractions of the hook scroll (5 screens)
   title: { out: 0.04 },
-  text: { start: 0.07, span: 0.4, word: 0.06, blur: 10 },
-  tension: { start: 0.58, end: 0.84 },
-  explode: { at: 0.84, textDist: 6.3, hold: 0.24 }, // hold: seconds the text holds as particles
-  // after the blast everything runs on time, not scroll: all cards built within ~2.3 s
-  form: { delay: 0.0, stagger: 0.12, duration: 1.4 },
+  text: { start: 0.06, span: 0.36, word: 0.06, blur: 10 },
+  tension: { start: 0.55, end: 0.72 },
+  // from the blast to the finished grid is one short stretch of scroll (~1 screen), scrubbed both ways.
+  // Times below are in 'build seconds' along that stretch: hold = text holds as particles
+  explode: { at: 0.72, end: 0.95, textDist: 6.3, hold: 0.24 },
+  form: { delay: 0.0, stagger: 0.12, duration: 1.6 },
   grid: { distance: 9 },
   // cursor layer: phases 4-5 and the grid only; off on touch and reduced motion
   cursor: {
@@ -555,10 +556,12 @@ function startGL() {
     ${landedChunk}
     void main(){
       vec2 uv = vUv;
-      float l = landed(uProg, uv);
+      float l = landed(clamp((uProg - 0.3) / 0.7, 0.0, 1.0), uv);
       float rev = smoothstep(0.93, 1.0, l);                       // image only where particles have landed
       float front = smoothstep(0.7, 0.95, l) * (1.0 - rev);       // a faint glow just ahead of them
-      if (rev + front < 0.002) discard;
+      float edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
+      float line = (1.0 - smoothstep(0.0, 0.005, edge)) * smoothstep(0.3, 0.45, uProg);
+      if (rev + front + line < 0.002) discard;
       vec3 c = vec3(0.0);
       float rad = uBlur * 0.065;
       for (int i = 0; i < 8; i++){
@@ -570,13 +573,13 @@ function startGL() {
       }
       c /= 8.0;
       c *= uDim * (1.0 + uHover * 0.1);
-      float edge = min(min(uv.x, 1.0 - uv.x), min(uv.y, 1.0 - uv.y));
       c = mix(c, vec3(0.95, 0.9, 0.97), (1.0 - smoothstep(0.0, 0.006, edge)) * (0.18 + uHover * 0.5) * (1.0 - uBlur));
       vec2 d = (gl_FragCoord.xy - uMouse) / uRes.y;
       c += vec3(0.62, 0.5, 0.7) * exp(-dot(d, d) / (uLightR * uLightR)) * uLightAmt;
       vec3 glow = vec3(0.86, 0.74, 0.94);
       c = mix(glow, c, rev);
-      float a = (rev + front * 0.16) * smoothstep(0.0, 0.004 + uBlur * 0.05, edge);
+      c = mix(c, vec3(0.92, 0.86, 0.96), line * (1.0 - rev));
+      float a = max((rev + front * 0.16) * smoothstep(0.0, 0.004 + uBlur * 0.05, edge), line * 0.55);
       gl_FragColor = vec4(c, a);
     }`;
   cards.forEach((c) => {
@@ -601,11 +604,13 @@ function startGL() {
   for (let i = 0; i < shardCount; i++) {
     const ci = Math.floor(Math.random() * NC);
     let u = Math.random(), v = Math.random();
-    if (Math.random() < 0.22) { // trace the outline so the card shapes read before the image does
-      const side = Math.floor(Math.random() * 4);
-      if (side === 0) v = 0; else if (side === 1) v = 1; else if (side === 2) u = 0; else u = 1;
+    let tag = 0; // 0 = fills the inside; 1 + t = traces the outline, t = position around it
+    if (Math.random() < 0.35) {
+      const t = Math.random(), per = t * 4, side = Math.floor(per), q = per - side;
+      if (side === 0) { u = q; v = 1; } else if (side === 1) { u = 1; v = 1 - q; } else if (side === 2) { u = 1 - q; v = 0; } else { u = 0; v = q; }
+      tag = 1 + t;
     }
-    sCard.set([ci, u, v, Math.random()], i * 4);
+    sCard.set([ci, u, v, tag], i * 4);
     for (let k = 0; k < 4; k++) sSeed[i * 4 + k] = Math.random();
   }
   const shardGeo = new THREE.BufferGeometry();
@@ -616,7 +621,7 @@ function startGL() {
   const shardMat = new THREE.ShaderMaterial({
     transparent: true, depthTest: false, depthWrite: false,
     blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneFactor,
-    defines: { NC, HOLD: CFG.explode.hold.toFixed(3) },
+    defines: { NC, HOLD: CFG.explode.hold.toFixed(3), OUTLINE_END: '0.4', FILL_START: '0.3' },
     uniforms: {
       uTime: { value: 0 }, uFocus: { value: 7 }, uPx: { value: 1000 }, uVis: { value: 0 },
       uBurstT: { value: 0 }, uAtlas: atlasRef, uCardP: { value: cardUniformsP },
@@ -647,7 +652,11 @@ function startGL() {
         // build: each particle flies straight to its spot on its card
         int ci = int(aCard.x + 0.5);
         vec3 tgt = (uCardM[ci] * vec4((aCard.yz - 0.5) * uCardS[ci], 0.0, 1.0)).xyz;
-        float l = landed(uCardP[ci], aCard.yz);
+        float prog = uCardP[ci];
+        bool outline = aCard.w >= 1.0;
+        float l = outline
+          ? clamp((prog / OUTLINE_END - (aCard.w - 1.0) * 0.6) / 0.4, 0.0, 1.0)   // drawn around the edge
+          : landed(clamp((prog - FILL_START) / (1.0 - FILL_START), 0.0, 1.0), aCard.yz);
         float f = l * l * (3.0 - 2.0 * l);
         vec3 p = mix(b, tgt, f) + (aSeed.xyz - 0.5) * 1.2 * sin(f * 3.14159);
 
@@ -662,13 +671,14 @@ function startGL() {
         vec3 col = mix(vec3(1.0, 0.97, 1.0), vec3(0.84, 0.74, 0.92), smoothstep(0.05, 0.7, e));
         vec4 cell = uCardCell[ci];
         vec3 img = texture2D(uAtlas, cell.xy + clamp(aCard.yz, 0.01, 0.99) * cell.zw).rgb;
-        col = mix(col, img * 1.3 + 0.04, f);
+        col = mix(col, outline ? vec3(0.96, 0.9, 1.0) : img * 1.3 + 0.04, f);
         vCol = col;
 
         float energy = (sharp * sharp) / (size * size);
         float flash = 1.0 + 1.6 * exp(-bt * 4.0);
         float depthFade = smoothstep(46.0, 16.0, z) * smoothstep(0.2, 1.0, z);
-        float handoff = 1.0 - smoothstep(0.9, 1.0, l);       // landed: the card's pixel takes over
+        float handoff = outline ? 1.0 - smoothstep(0.88, 1.0, prog) * 0.85   // the outline stays until the card is whole
+                                : 1.0 - smoothstep(0.9, 1.0, l);                 // landed: the card's pixel takes over
         vAlpha = uVis * depthFade * flash * handoff * clamp(energy + 0.05 * coc, 0.0, 1.0) * (0.55 + 0.45 * aSeed.z);
         vCoc = coc;
       }`,
@@ -833,7 +843,7 @@ function startGL() {
   const tmpE = new THREE.Euler(), tmpQ = new THREE.Quaternion(), tmpQ2 = new THREE.Quaternion(), tmpV = new THREE.Vector3();
   const one = new THREE.Vector3(1, 1, 1), fwd = new THREE.Vector3(), lookAt = new THREE.Vector3();
   const corners = [[-0.5, -0.5], [0.5, -0.5], [-0.5, 0.5], [0.5, 0.5]];
-  let exploded = false, burstT0 = 0, flash = 0;
+  let exploded = false, flash = 0;
 
   // camera: dolly into the fog until the blast, then it holds on the grid with a little parallax
   function updateCamera(k, pre, built) {
@@ -875,13 +885,11 @@ function startGL() {
       updateCamera(0, 1, 0);
       captureText();
       exploded = true;
-      const jumped = p > CFG.explode.at + 0.03; // landed here from a jump: show the finished grid
-      burstT0 = T - (jumped ? FORM_DONE + 1 : 0);
-      if (!jumped) sound.boom();
+      if (p < CFG.explode.at + 0.03) sound.boom(); // not when landing here from a jump
     } else if (exploded && p < CFG.explode.at - 0.012) {
       exploded = false;
     }
-    const burstT = exploded ? T - burstT0 : 0;
+    const burstT = exploded ? clamp01((p - CFG.explode.at) / (CFG.explode.end - CFG.explode.at)) * FORM_DONE : 0;
     const blastT = burstT - CFG.explode.hold;
     flash = exploded && blastT > 0 && blastT < 3 ? Math.exp(-blastT * 3.2) * smooth(0, 0.04, blastT) : 0;
     const built = exploded ? smooth(FORM_DONE - 0.5, FORM_DONE, burstT) : 0; // 1 = grid finished
