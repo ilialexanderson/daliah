@@ -36,7 +36,7 @@ const grid = $("grid"), filters = $("filters");
 const tiles = WORK.map((w) => {
   const a = document.createElement("a");
   a.className = "tile"; a.href = "#" + w.slug; a.dataset.slug = w.slug;
-  a.innerHTML = `<span class="thumb" style="aspect-ratio:${w.ar}"><img src="${w.img}" alt="" loading="lazy" decoding="async"></span>` +
+  a.innerHTML = `<span class="thumb" style="aspect-ratio:${w.ar}"><img src="${w.img}" alt="${w.title}" loading="lazy" decoding="async"></span>` +
     `<span class="meta"><span class="name">${w.title}</span><span class="sub mono">${[w.client, w.year].filter(Boolean).join(" · ")}</span><span class="tags mono">${w.tags.map((t) => T.tags[t]).join(" · ")}</span></span>`;
   grid.appendChild(a);
   return { w, el: a, pos: null };
