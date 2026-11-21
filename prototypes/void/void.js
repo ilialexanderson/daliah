@@ -102,7 +102,7 @@ const PROJECTS = [
   { id: "o-nama", ar: 1, col: 1, small: 0.6, kind: "logo", title: T.about, tags: "daliah →", href: "#o-nama" },
   { id: "cupra", ar: 0.8, col: 2, img: "media/cupra1-hero.jpg", title: "Cupra", tags: T.tags.pv, href: "#radovi/cupra" },
   { id: "omg", ar: 1.5, col: 1, img: "media/omg.jpg", title: "OMG", tags: T.tags.web, href: "#radovi/omg" },
-  { id: "svi", ar: 1.5, col: 2, kind: "cta", title: T.all.join(" "), tags: "", href: "#radovi-svi" },
+  { id: "svi", ar: 1.5, col: 2, kind: "cta", title: T.all.join(" "), tags: "", href: "radovi/" },
 ];
 const CARDS = PROJECTS;
 const NC = CARDS.length;
@@ -494,6 +494,14 @@ function startGL() {
   const landedChunk = /* glsl */ `
     // where on a card a particle lands first: mostly noise, swept a little from the top.
     // the card shader uses the same function, so the image appears exactly where particles land
+    // one grade for every photo: pull colour toward the void's purple, lift the blacks a touch, so images sit in the fog
+    vec3 grade(vec3 c){
+      float l = dot(c, vec3(0.299, 0.587, 0.114));
+      c = mix(vec3(l), c, 0.86);
+      vec3 gm = mix(vec3(0.20, 0.08, 0.24), vec3(1.0, 0.94, 1.0), smoothstep(0.02, 0.95, l));
+      c = mix(c, gm, 0.30);
+      return 1.0 - (1.0 - c) * (1.0 - vec3(0.05, 0.018, 0.07));
+    }
     float h21(vec2 p){ return fract(sin(dot(p, vec2(41.3, 289.1))) * 43758.5453); }
     float vn2(vec2 p){ vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
       return mix(mix(h21(i), h21(i + vec2(1,0)), f.x), mix(h21(i + vec2(0,1)), h21(i + vec2(1,1)), f.x), f.y); }
@@ -579,6 +587,7 @@ function startGL() {
         c += texture2D(uAtlas, uCell.xy + u * uCell.zw, uBlur * 3.5).rgb;
       }
       c /= 8.0;
+      c = mix(grade(c), c, uHover * 0.85);                       // hover shows the original colours
       c *= uDim * (1.0 + uHover * 0.1);
       c = mix(c, vec3(0.95, 0.9, 0.97), (1.0 - smoothstep(0.0, 0.006, edge)) * (0.18 + uHover * 0.5) * (1.0 - uBlur));
       vec2 d = (gl_FragCoord.xy - uMouse) / uRes.y;
@@ -679,7 +688,7 @@ function startGL() {
         vec3 col = mix(vec3(1.0, 0.97, 1.0), vec3(0.84, 0.74, 0.92), smoothstep(0.05, 0.7, e));
         vec4 cell = uCardCell[ci];
         vec3 img = texture2D(uAtlas, cell.xy + clamp(aCard.yz, 0.01, 0.99) * cell.zw).rgb;
-        col = mix(col, outline ? vec3(0.96, 0.9, 1.0) : img * 1.3 + 0.04, f);
+        col = mix(col, outline ? vec3(0.96, 0.9, 1.0) : grade(img) * 1.3 + 0.04, f);
         vCol = col;
 
         float energy = (sharp * sharp) / (size * size);
