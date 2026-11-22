@@ -70,11 +70,15 @@
   function layoutPieces() {
     if (!pieces.length) return;
     const ars = pieces.map((p) => { const im = p.querySelector("img"); return im.naturalWidth ? im.naturalWidth / im.naturalHeight : 1; });
-    const gap = innerWidth * 0.025, roots = ars.map(Math.sqrt), sum = roots.reduce((a, b) => a + b, 0);
-    const base = Math.min((innerWidth * 0.88 - gap * (pieces.length - 1)) / sum, innerHeight * 0.42);
+    // the pieces overlap a little (negative gap), which lets them be larger than a strict row
+    const gap = -Math.min(innerWidth * 0.035, 60), roots = ars.map(Math.sqrt), sum = roots.reduce((a, b) => a + b, 0);
+    const avail = Math.min(innerWidth - 2 * (parseFloat(getComputedStyle(document.querySelector("main")).paddingLeft) || 40), 1500);
+    const base = Math.min((avail - gap * (pieces.length - 1)) / sum, innerHeight * 0.5);
     const ws = roots.map((r) => r * base), total = ws.reduce((a, b) => a + b, 0) + gap * (pieces.length - 1);
     let x = -total / 2;
     pieces.forEach((p, i) => { p.style.setProperty("--w", ws[i].toFixed(1) + "px"); p.style.setProperty("--x", (x + ws[i] / 2).toFixed(1) + "px"); x += ws[i] + gap; });
+    const tallest = Math.max(...ws.map((w, i) => w / ars[i]));
+    pieces[0].closest(".hd-stage").style.setProperty("--stage-h", (tallest + innerHeight * 0.08).toFixed(0) + "px");
   }
   pieces.forEach((p) => p.querySelector("img").addEventListener("load", layoutPieces));
   layoutPieces();
@@ -199,7 +203,10 @@
       const n = track.children.length;
       setI.textContent = String(Math.min(n, 1 + Math.floor(p * n * 0.999))).padStart(2, "0");
     }
-    if (design && wide() && !reduce) design.style.setProperty("--p", progress(design).toFixed(4));
+    if (design && wide() && !reduce) {
+      const r = design.getBoundingClientRect(); // 0 as it enters from below, 1 as it leaves at the top
+      design.style.setProperty("--p", clamp((innerHeight - r.top) / (innerHeight + r.height), 0, 1).toFixed(4));
+    }
     if (site && !reduce && wide()) {
       const p = progress(site);
       site.style.setProperty("--p", p.toFixed(4));

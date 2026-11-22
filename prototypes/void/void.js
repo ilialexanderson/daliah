@@ -178,6 +178,57 @@ const tiles = PROJECTS.map((c, i) => {
   return a;
 });
 
+// ---------------------------------------------------------------- phone: the cards form a carousel
+// Portrait screens get one large card in the middle with its neighbours peeking in, curving away
+// in depth; swipe sideways to move through them. The caption under the card names the one in front.
+let CAROUSEL = innerWidth / innerHeight < 0.8;
+const car = { x: 0, target: 0, spacing: 1, spacingPx: 1, y: 0, drag: null, moved: false, touched: false, nudge: -1, shown: -1 };
+const carCap = document.createElement("div");
+carCap.className = "car-cap"; carCap.setAttribute("aria-live", "polite");
+carCap.innerHTML = '<span class="car-n mono"></span><span class="car-title"></span><span class="car-tags mono"></span>';
+gridUI.appendChild(carCap);
+function carCaption(i) {
+  const c = PROJECTS[i];
+  carCap.querySelector(".car-n").textContent = `${String(i + 1).padStart(2, "0")} / ${String(GRID_N).padStart(2, "0")}`;
+  carCap.querySelector(".car-title").textContent = c.kind === "cta" ? T.all.join(" ") + " →" : c.title;
+  carCap.querySelector(".car-tags").textContent = c.kind === "cta" ? "" : c.tags;
+}
+const carGo = (i) => { car.target = Math.max(0, Math.min(GRID_N - 1, i)); car.touched = true; };
+addEventListener("pointerdown", (e) => {
+  if (!CAROUSEL || !gridUI.classList.contains("is-on") || gridUI.classList.contains("is-past")) return;
+  car.drag = { x0: e.clientX, y0: e.clientY, cx: car.x, t: performance.now(), lx: e.clientX, lt: performance.now(), v: 0, id: e.pointerId };
+  car.moved = false;
+});
+addEventListener("pointermove", (e) => {
+  const d = car.drag; if (!d || e.pointerId !== d.id) return;
+  const dx = e.clientX - d.x0;
+  if (!car.moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - d.y0)) car.moved = true;
+  if (!car.moved) return;
+  const now = performance.now();
+  d.v = (e.clientX - d.lx) / Math.max(1, now - d.lt); d.lx = e.clientX; d.lt = now;
+  car.x = car.target = Math.max(-0.4, Math.min(GRID_N - 0.6, d.cx - dx / car.spacingPx));
+  car.touched = true;
+});
+const carRelease = (e) => {
+  const d = car.drag; if (!d || (e && e.pointerId !== d.id)) return;
+  car.drag = null;
+  if (car.moved) carGo(Math.round(car.x + (Math.abs(d.v) > 0.35 ? -Math.sign(d.v) * 0.5 : 0))); // a flick carries on to the next card, never further
+};
+addEventListener("pointerup", carRelease);
+addEventListener("pointercancel", carRelease);
+// a swipe isn't a tap; a tap on a side card brings it to the front instead of opening it
+gridUI.addEventListener("click", (e) => {
+  if (!CAROUSEL) return;
+  const t = e.target.closest(".tile"); if (!t) return;
+  const i = tiles.indexOf(t);
+  if (car.moved) { e.preventDefault(); car.moved = false; return; }
+  if (i !== Math.round(car.target)) { e.preventDefault(); carGo(i); }
+}, true);
+addEventListener("keydown", (e) => {
+  if (!CAROUSEL || !gridUI.classList.contains("is-on")) return;
+  if (e.key === "ArrowRight") carGo(Math.round(car.target) + 1); else if (e.key === "ArrowLeft") carGo(Math.round(car.target) - 1);
+});
+
 // ---------------------------------------------------------------- scroll + pointer state
 const state = { scrollTarget: 0, scroll: 0, mx: 0, my: 0, smx: 0, smy: 0, pmx: 0, pmy: 0, vel: 0, time: 0, mouseSeen: false };
 const voidEl = document.getElementById("void");
@@ -545,6 +596,21 @@ function startGL() {
     const aspect = innerWidth / innerHeight;
     const D = CFG.grid.distance;
     const Hv = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), Wv = Hv * aspect;
+    CAROUSEL = aspect < 0.8;
+    body.classList.toggle("carousel", CAROUSEL);
+    if (CAROUSEL) {
+      // one card at a time: about two thirds of the width, no taller than half the screen
+      const maxW = Wv * 0.66, maxH = Hv * 0.46;
+      car.spacing = Wv * 0.74; car.spacingPx = innerWidth * 0.74; car.y = Hv * 0.02;
+      cards.forEach((card, i) => {
+        const ar = PROJECTS[i].ar;
+        let w = maxW, h = w / ar;
+        if (h > maxH) { h = maxH; w = h * ar; }
+        card.gsize.set(w, h);
+        card.grid.set(i * car.spacing, car.y, restCam.z - D);
+      });
+      return;
+    }
     const cols = aspect >= 1 ? 3 : 2;
     const gap = Hv * 0.016, label = Hv * (aspect >= 1 ? 0.042 : 0.04);
     const areaW = Wv * (aspect >= 1 ? 0.94 : 0.95), areaH = Hv * (aspect >= 1 ? 0.87 : 0.82);
@@ -1043,11 +1109,26 @@ function startGL() {
     // cards: each forms tilted and a little deep, and straightens into its grid slot as it builds
     camera.getWorldDirection(fwd);
     const tiltOn = cursorOn ? built : 0;
+    if (CAROUSEL && !car.drag) car.x += (car.target - car.x) * (1 - Math.exp(-dt * 8));
+    // once the cards are built, a small nudge shows that they move sideways (until the first swipe)
+    if (CAROUSEL && built > 0.99 && car.nudge < 0 && !car.touched) car.nudge = T;
+    const nudgeK = CAROUSEL && car.nudge >= 0 && !car.touched ? clamp01((T - car.nudge - 0.6) / 1.4) : 1;
+    const carX = car.x + (nudgeK < 1 ? Math.sin(nudgeK * Math.PI) * 0.32 : 0);
+    if (CAROUSEL) {
+      const front = Math.max(0, Math.min(GRID_N - 1, Math.round(car.x)));
+      if (front !== car.shown) { car.shown = front; carCaption(front); }
+    }
     cards.forEach((c, i) => {
       const start = CFG.explode.hold + CFG.form.delay + i * CFG.form.stagger;
       c.prog = exploded ? clamp01((burstT - start) / CFG.form.duration) : 0;
       const ease = 1 - Math.pow(1 - c.prog, 3);
       c.hover += ((hovered === i && built > 0.9 ? 1 : 0) - c.hover) * (1 - Math.exp(-dt * 10));
+      let carD = 0;
+      if (CAROUSEL) {
+        carD = i - carX;
+        const ad = Math.abs(carD);
+        c.grid.set(carD * car.spacing * (1 - 0.08 * Math.min(ad, 2)), car.y, restCam.z - CFG.grid.distance - Math.pow(ad, 1.25) * car.spacing * 0.8);
+      }
       c.pos.copy(c.grid);
       c.pos.z += c.zOff * (1 - ease) + c.hover * CFG.cursor.hoverLift;
       tmpE.set(c.rot0.x * (1 - ease), c.rot0.y * (1 - ease), c.rot0.z * (1 - ease));
@@ -1055,6 +1136,7 @@ function startGL() {
       tmpE.set(state.smy * CFG.cursor.tilt.x * tiltOn * (0.6 + c.hover * 0.6), state.smx * CFG.cursor.tilt.y * tiltOn * (0.6 + c.hover * 0.6), 0);
       tmpQ2.setFromEuler(tmpE);
       c.quat.copy(tmpQ).multiply(tmpQ2);
+      if (CAROUSEL) { tmpE.set(0, -Math.max(-1.6, Math.min(1.6, carD)) * 0.5, 0); tmpQ2.setFromEuler(tmpE); c.quat.multiply(tmpQ2); } // side cards turn away
       c.size.copy(c.gsize);
       cardUniformsM[i].compose(c.pos, c.quat, one);
       cardUniformsS[i].copy(c.size);
@@ -1065,16 +1147,17 @@ function startGL() {
       const u = c.mesh.material.uniforms;
       u.uProg.value = c.prog; u.uAspect.value = c.size.x / c.size.y;
       u.uBlur.value = coc;
-      u.uDim.value = 1 - 0.45 * smooth(9, 20, dist);
+      u.uDim.value = (1 - 0.45 * smooth(9, 20, dist)) * (CAROUSEL ? 1 - 0.6 * smooth(0.3, 1.4, Math.abs(carD)) : 1);
       u.uHover.value = c.hover;
       u.uLightAmt.value = CFG.cursor.light * tiltOn;
-      c.mesh.visible = exploded && c.prog > 0;
+      c.mesh.visible = exploded && c.prog > 0 && (!CAROUSEL || Math.abs(carD) < 2.6);
       c.mesh.position.copy(c.pos); c.mesh.quaternion.copy(c.quat); c.mesh.scale.set(c.size.x * (1 + 2 * CARD_PAD), c.size.y * (1 + 2 * CARD_PAD), 1);
       c.mesh.renderOrder = Math.round(5000 - dist * 100);
     });
 
     // grid links follow the projected cards
     gridUI.classList.toggle("is-on", built > 0.6);
+    body.classList.toggle("grid-on", built > 0.6);
     // past the hook (kontakt scrolls in): the void, the cards and their links fade out
     const past = clamp01(1 - voidEl.getBoundingClientRect().bottom / innerHeight);
     canvas.style.opacity = (1 - past).toFixed(3);
@@ -1094,6 +1177,7 @@ function startGL() {
         t.style.transform = `translate3d(${x0.toFixed(1)}px, ${y0.toFixed(1)}px, 0)`;
         t.style.width = `${(x1 - x0).toFixed(1)}px`; t.style.height = `${(y1 - y0).toFixed(1)}px`;
         t.classList.toggle("is-narrow", x1 - x0 < 210);
+        t.classList.toggle("is-far", CAROUSEL && Math.abs(i - car.x) > 1.4);
       }
     }
 

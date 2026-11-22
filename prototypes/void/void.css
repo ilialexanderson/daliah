@@ -322,3 +322,15 @@ body.no-motion .tile--cta .tile-meta { display: flex; }
 /* past the hook, the corner chrome (frame, skip link, progress, scroll hint) fades out so it never sits on the contact section */
 body.is-ready .chrome .frame, body.is-ready .chrome .skip, body.is-ready .chrome .progress, body.is-ready .chrome .scroll-hint { opacity: calc(1 - var(--past, 0)); transition: opacity .3s linear; }
 html[style*="--past: 1"] .chrome .skip { pointer-events: none; }
+
+/* phone: the cards form a carousel; one caption under the card in front replaces the per-card labels */
+body.carousel .tile-meta { display: none; }
+body.carousel .tile.is-far { pointer-events: none !important; }
+body.carousel { touch-action: pan-y pinch-zoom; }
+.car-cap { display: none; }
+body.carousel .car-cap { display: flex; flex-direction: column; gap: 8px; position: absolute; left: var(--gutter, 20px); right: var(--gutter, 20px); bottom: 14vh; pointer-events: none; }
+.car-n { color: var(--lilac); }
+.car-title { font-size: clamp(26px, 8vw, 40px); letter-spacing: -0.035em; line-height: 1; color: var(--ink-strong); }
+.car-tags { color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* once the carousel is up, the skip link and the scroll counter step aside */
+body.carousel.grid-on .chrome .skip, body.carousel.grid-on .chrome .progress, body.carousel.grid-on .chrome .scroll-hint { opacity: 0 !important; pointer-events: none; }
