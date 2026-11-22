@@ -110,6 +110,16 @@ const PROJECTS = [
   { id: "omg", ar: 1.5, col: 1, img: "media/omg.jpg", title: "OMG", tags: T.tags.web, href: "projekat/omg/" },
   { id: "svi", ar: 1.5, col: 2, kind: "cta", title: T.all.join(" "), tags: "", href: "radovi/" },
 ];
+// Phone (portrait): a grid designed for the narrow screen instead of a shrunken desktop masonry.
+// Rows: one full-width card, or a pair of portraits; "o nama" and "svi radovi" become slim full-width
+// bands. The grid can be taller than the screen; it then scrolls with the page once it's built.
+const PHONE_GRID = innerWidth / innerHeight < 0.8;
+const PHONE_ROWS = [["kodeks"], ["bash", "mirza"], ["o-nama"], ["polumaraton"], ["cupra", "omg"], ["svi"]];
+if (PHONE_GRID) {
+  const set = (id, o) => Object.assign(PROJECTS.find((p) => p.id === id), o);
+  set("omg", { ar: 0.8 }); set("o-nama", { ar: 3.4, small: 1 }); set("svi", { ar: 3.4 });
+}
+let gridExtraPx = 0, gridHv = 1; // how far the phone grid reaches below the screen, and the view height in world units
 const CARDS = PROJECTS;
 const NC = CARDS.length;
 const GRID_N = PROJECTS.length;
@@ -178,63 +188,14 @@ const tiles = PROJECTS.map((c, i) => {
   return a;
 });
 
-// ---------------------------------------------------------------- phone: the cards form a carousel
-// Portrait screens get one large card in the middle with its neighbours peeking in, curving away
-// in depth; swipe sideways to move through them. The caption under the card names the one in front.
-let CAROUSEL = innerWidth / innerHeight < 0.8;
-const car = { x: 0, target: 0, spacing: 1, spacingPx: 1, y: 0, drag: null, moved: false, touched: false, nudge: -1, shown: -1 };
-const carCap = document.createElement("div");
-carCap.className = "car-cap"; carCap.setAttribute("aria-live", "polite");
-carCap.innerHTML = '<span class="car-n mono"></span><span class="car-title"></span><span class="car-tags mono"></span>';
-gridUI.appendChild(carCap);
-function carCaption(i) {
-  const c = PROJECTS[i];
-  carCap.querySelector(".car-n").textContent = `${String(i + 1).padStart(2, "0")} / ${String(GRID_N).padStart(2, "0")}`;
-  carCap.querySelector(".car-title").textContent = c.kind === "cta" ? T.all.join(" ") + " →" : c.title;
-  carCap.querySelector(".car-tags").textContent = c.kind === "cta" ? "" : c.tags;
-}
-const carGo = (i) => { car.target = Math.max(0, Math.min(GRID_N - 1, i)); car.touched = true; };
-addEventListener("pointerdown", (e) => {
-  if (!CAROUSEL || !gridUI.classList.contains("is-on") || gridUI.classList.contains("is-past")) return;
-  car.drag = { x0: e.clientX, y0: e.clientY, cx: car.x, t: performance.now(), lx: e.clientX, lt: performance.now(), v: 0, id: e.pointerId };
-  car.moved = false;
-});
-addEventListener("pointermove", (e) => {
-  const d = car.drag; if (!d || e.pointerId !== d.id) return;
-  const dx = e.clientX - d.x0;
-  if (!car.moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(e.clientY - d.y0)) car.moved = true;
-  if (!car.moved) return;
-  const now = performance.now();
-  d.v = (e.clientX - d.lx) / Math.max(1, now - d.lt); d.lx = e.clientX; d.lt = now;
-  car.x = car.target = Math.max(-0.4, Math.min(GRID_N - 0.6, d.cx - dx / car.spacingPx));
-  car.touched = true;
-});
-const carRelease = (e) => {
-  const d = car.drag; if (!d || (e && e.pointerId !== d.id)) return;
-  car.drag = null;
-  if (car.moved) carGo(Math.round(car.x + (Math.abs(d.v) > 0.35 ? -Math.sign(d.v) * 0.5 : 0))); // a flick carries on to the next card, never further
-};
-addEventListener("pointerup", carRelease);
-addEventListener("pointercancel", carRelease);
-// a swipe isn't a tap; a tap on a side card brings it to the front instead of opening it
-gridUI.addEventListener("click", (e) => {
-  if (!CAROUSEL) return;
-  const t = e.target.closest(".tile"); if (!t) return;
-  const i = tiles.indexOf(t);
-  if (car.moved) { e.preventDefault(); car.moved = false; return; }
-  if (i !== Math.round(car.target)) { e.preventDefault(); carGo(i); }
-}, true);
-addEventListener("keydown", (e) => {
-  if (!CAROUSEL || !gridUI.classList.contains("is-on")) return;
-  if (e.key === "ArrowRight") carGo(Math.round(car.target) + 1); else if (e.key === "ArrowLeft") carGo(Math.round(car.target) - 1);
-});
 
 // ---------------------------------------------------------------- scroll + pointer state
-const state = { scrollTarget: 0, scroll: 0, mx: 0, my: 0, smx: 0, smy: 0, pmx: 0, pmy: 0, vel: 0, time: 0, mouseSeen: false };
+const state = { scrollTarget: 0, scroll: 0, gridScroll: 0, mx: 0, my: 0, smx: 0, smy: 0, pmx: 0, pmy: 0, vel: 0, time: 0, mouseSeen: false };
 const voidEl = document.getElementById("void");
 function readScroll() {
-  const max = voidEl.offsetHeight - innerHeight;
+  const max = voidEl.offsetHeight - innerHeight - gridExtraPx;
   state.scrollTarget = max > 0 ? clamp01(scrollY / max) : 0;
+  state.gridScroll = Math.max(0, Math.min(gridExtraPx, scrollY - max));
   body.classList.toggle("is-scrolled", scrollY > 8);
 }
 addEventListener("scroll", readScroll, { passive: true });
@@ -247,7 +208,7 @@ document.addEventListener("click", (e) => {
 const jumpTo = parseFloat(new URLSearchParams(location.search).get("p"));
 function applyJump() {
   if (!(jumpTo >= 0)) return;
-  scrollTo(0, jumpTo * (voidEl.offsetHeight - innerHeight));
+  scrollTo(0, jumpTo * (voidEl.offsetHeight - innerHeight - gridExtraPx));
   readScroll();
   state.scroll = state.scrollTarget;
 }
@@ -365,6 +326,13 @@ async function buildAtlas() {
       g.fillStyle = "#2a1431"; g.fillRect(x, y, w0, h0);
       g.strokeStyle = "rgba(201,162,207,0.55)"; g.lineWidth = 3; g.strokeRect(x + 1.5, y + 1.5, w0 - 3, h0 - 3);
       g.textBaseline = "alphabetic";
+      if (c.ar > 2.5) { // slim band: "svi radovi →" on one line
+        g.fillStyle = "#f6eff8"; g.font = `400 ${Math.round(h0 * 0.34)}px "Plus Jakarta Sans", sans-serif`; g.fillText(T.all[0], x + w0 * 0.05, y + h0 * 0.62);
+        const w1 = g.measureText(T.all[0] + " ").width;
+        g.fillStyle = "#c9a2cf"; g.font = `italic 600 ${Math.round(h0 * 0.46)}px "Cormorant Garamond", serif`; g.fillText(T.all[1], x + w0 * 0.05 + w1, y + h0 * 0.62);
+        g.fillStyle = "#f6eff8"; g.font = `400 ${Math.round(h0 * 0.34)}px "Plus Jakarta Sans", sans-serif`; g.textAlign = "right"; g.fillText("→", x + w0 * 0.95, y + h0 * 0.62); g.textAlign = "left";
+        return;
+      }
       g.fillStyle = "#f6eff8"; g.font = `400 ${Math.round(h0 * 0.2)}px "Plus Jakarta Sans", sans-serif`; g.fillText(T.all[0], x + w0 * 0.08, y + h0 * 0.46);
       g.fillStyle = "#c9a2cf"; g.font = `italic 600 ${Math.round(h0 * 0.27)}px "Cormorant Garamond", serif`; g.fillText(T.all[1], x + w0 * 0.08, y + h0 * 0.76);
       g.fillStyle = "#f6eff8"; g.font = `400 ${Math.round(h0 * 0.2)}px "Plus Jakarta Sans", sans-serif`; g.textAlign = "right"; g.fillText("→", x + w0 * 0.92, y + h0 * 0.76); g.textAlign = "left";
@@ -372,7 +340,7 @@ async function buildAtlas() {
     }
     if (c.kind === "logo") {
       g.fillStyle = "#efe8f1"; g.fillRect(x, y, w0, h0);
-      if (im) { const h = h0 * 0.42, w = h * ((im.width / im.height) || 0.674); g.drawImage(im, x + (w0 - w) / 2, y + (h0 - h) / 2, w, h); }
+      if (im) { const h = h0 * (c.ar > 2.5 ? 0.62 : 0.42), w = h * ((im.width / im.height) || 0.674); g.drawImage(im, x + (w0 - w) / 2, y + (h0 - h) / 2, w, h); }
       return;
     }
     if (!im) return;
@@ -596,19 +564,28 @@ function startGL() {
     const aspect = innerWidth / innerHeight;
     const D = CFG.grid.distance;
     const Hv = 2 * D * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)), Wv = Hv * aspect;
-    CAROUSEL = aspect < 0.8;
-    body.classList.toggle("carousel", CAROUSEL);
-    if (CAROUSEL) {
-      // one card at a time: about two thirds of the width, no taller than half the screen
-      const maxW = Wv * 0.66, maxH = Hv * 0.46;
-      car.spacing = Wv * 0.74; car.spacingPx = innerWidth * 0.74; car.y = Hv * 0.02;
-      cards.forEach((card, i) => {
-        const ar = PROJECTS[i].ar;
-        let w = maxW, h = w / ar;
-        if (h > maxH) { h = maxH; w = h * ar; }
-        card.gsize.set(w, h);
-        card.grid.set(i * car.spacing, car.y, restCam.z - D);
+    gridHv = Hv;
+    body.classList.toggle("phone-grid", PHONE_GRID);
+    if (PHONE_GRID) {
+      const px = Wv / innerWidth, py = Hv / innerHeight;           // world units per CSS pixel
+      const side = 16 * px, gap = 10 * px, label = 30 * py;
+      const W = Wv - 2 * side;
+      let y = Hv / 2 - 78 * py;                                        // below the top nav
+      PHONE_ROWS.forEach((row) => {
+        const idx = row.map((id) => PROJECTS.findIndex((p) => p.id === id));
+        const w = (W - gap * (row.length - 1)) / row.length;
+        const h = w / PROJECTS[idx[0]].ar;
+        const withLabel = idx.some((i) => PROJECTS[i].kind !== "cta");
+        idx.forEach((i, k) => {
+          cards[i].gsize.set(w, h);
+          cards[i].grid.set(-W / 2 + w / 2 + k * (w + gap), y - h / 2, restCam.z - D);
+        });
+        y -= h + (withLabel ? label : 0) + gap * 1.6;
       });
+      const used = Hv / 2 - y, visible = Hv - 40 * py;
+      gridExtraPx = Math.max(0, (used - visible) / py);
+      voidEl.style.height = `calc(500vh + ${gridExtraPx.toFixed(0)}px)`;
+      readScroll();
       return;
     }
     const cols = aspect >= 1 ? 3 : 2;
@@ -1067,7 +1044,7 @@ function startGL() {
       // hold the page at the grid until the build has played out, so a flick can't carry you past it
       // into kontakt; the skip and kontakt links jump on purpose and finish it at once instead
       if (!reduceMotion && !state.skip && state.scroll < 0.985) {
-        const end = voidEl.offsetHeight - innerHeight;
+        const end = voidEl.offsetHeight - innerHeight - gridExtraPx;
         if (scrollY > end + 2) scrollTo(0, end);
       }
     }
@@ -1109,34 +1086,20 @@ function startGL() {
     // cards: each forms tilted and a little deep, and straightens into its grid slot as it builds
     camera.getWorldDirection(fwd);
     const tiltOn = cursorOn ? built : 0;
-    if (CAROUSEL && !car.drag) car.x += (car.target - car.x) * (1 - Math.exp(-dt * 8));
-    // once the cards are built, a small nudge shows that they move sideways (until the first swipe)
-    if (CAROUSEL && built > 0.99 && car.nudge < 0 && !car.touched) car.nudge = T;
-    const nudgeK = CAROUSEL && car.nudge >= 0 && !car.touched ? clamp01((T - car.nudge - 0.6) / 1.4) : 1;
-    const carX = car.x + (nudgeK < 1 ? Math.sin(nudgeK * Math.PI) * 0.32 : 0);
-    if (CAROUSEL) {
-      const front = Math.max(0, Math.min(GRID_N - 1, Math.round(car.x)));
-      if (front !== car.shown) { car.shown = front; carCaption(front); }
-    }
+    const lift = gridExtraPx ? (state.gridScroll / innerHeight) * gridHv : 0; // phone: the grid scrolls up with the page
     cards.forEach((c, i) => {
       const start = CFG.explode.hold + CFG.form.delay + i * CFG.form.stagger;
       c.prog = exploded ? clamp01((burstT - start) / CFG.form.duration) : 0;
       const ease = 1 - Math.pow(1 - c.prog, 3);
       c.hover += ((hovered === i && built > 0.9 ? 1 : 0) - c.hover) * (1 - Math.exp(-dt * 10));
-      let carD = 0;
-      if (CAROUSEL) {
-        carD = i - carX;
-        const ad = Math.abs(carD);
-        c.grid.set(carD * car.spacing * (1 - 0.08 * Math.min(ad, 2)), car.y, restCam.z - CFG.grid.distance - Math.pow(ad, 1.25) * car.spacing * 0.8);
-      }
       c.pos.copy(c.grid);
+      c.pos.y += lift;
       c.pos.z += c.zOff * (1 - ease) + c.hover * CFG.cursor.hoverLift;
       tmpE.set(c.rot0.x * (1 - ease), c.rot0.y * (1 - ease), c.rot0.z * (1 - ease));
       tmpQ.setFromEuler(tmpE);
       tmpE.set(state.smy * CFG.cursor.tilt.x * tiltOn * (0.6 + c.hover * 0.6), state.smx * CFG.cursor.tilt.y * tiltOn * (0.6 + c.hover * 0.6), 0);
       tmpQ2.setFromEuler(tmpE);
       c.quat.copy(tmpQ).multiply(tmpQ2);
-      if (CAROUSEL) { tmpE.set(0, -Math.max(-1.6, Math.min(1.6, carD)) * 0.5, 0); tmpQ2.setFromEuler(tmpE); c.quat.multiply(tmpQ2); } // side cards turn away
       c.size.copy(c.gsize);
       cardUniformsM[i].compose(c.pos, c.quat, one);
       cardUniformsS[i].copy(c.size);
@@ -1147,10 +1110,10 @@ function startGL() {
       const u = c.mesh.material.uniforms;
       u.uProg.value = c.prog; u.uAspect.value = c.size.x / c.size.y;
       u.uBlur.value = coc;
-      u.uDim.value = (1 - 0.45 * smooth(9, 20, dist)) * (CAROUSEL ? 1 - 0.6 * smooth(0.3, 1.4, Math.abs(carD)) : 1);
+      u.uDim.value = (1 - 0.45 * smooth(9, 20, dist));
       u.uHover.value = c.hover;
       u.uLightAmt.value = CFG.cursor.light * tiltOn;
-      c.mesh.visible = exploded && c.prog > 0 && (!CAROUSEL || Math.abs(carD) < 2.6);
+      c.mesh.visible = exploded && c.prog > 0;
       c.mesh.position.copy(c.pos); c.mesh.quaternion.copy(c.quat); c.mesh.scale.set(c.size.x * (1 + 2 * CARD_PAD), c.size.y * (1 + 2 * CARD_PAD), 1);
       c.mesh.renderOrder = Math.round(5000 - dist * 100);
     });
@@ -1177,7 +1140,6 @@ function startGL() {
         t.style.transform = `translate3d(${x0.toFixed(1)}px, ${y0.toFixed(1)}px, 0)`;
         t.style.width = `${(x1 - x0).toFixed(1)}px`; t.style.height = `${(y1 - y0).toFixed(1)}px`;
         t.classList.toggle("is-narrow", x1 - x0 < 210);
-        t.classList.toggle("is-far", CAROUSEL && Math.abs(i - car.x) > 1.4);
       }
     }
 
