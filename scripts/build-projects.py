@@ -44,7 +44,7 @@ LAYOUT = {
     ),
     "kodeks": dict(
         accent="#8FB3CC",
-        hero=dict(type="design", items=["kdk_ig_2.jpg", "kdk_ig_1.jpg", "kdk_ig_3.jpg", "kodeks_brochure.webp"]),
+        hero=dict(type="design", items=["kdk_ig_2.jpg", "kdk_ig_1.jpg", "kdk_ig_3.jpg"]),
         after={3: [("full", "kodeks1.webp")]},
         pulls=["I da, dizajnirali i isprintali"],
     ),

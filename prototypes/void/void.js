@@ -114,7 +114,7 @@ const PROJECTS = [
 // Rows: one full-width card, or a pair of portraits; "o nama" and "svi radovi" become slim full-width
 // bands. The grid can be taller than the screen; it then scrolls with the page once it's built.
 const PHONE_GRID = innerWidth / innerHeight < 0.8;
-const PHONE_ROWS = [["kodeks"], ["bash", "mirza"], ["o-nama"], ["polumaraton"], ["cupra", "omg"], ["svi"]];
+const PHONE_ROWS = [["cupra", "bash"], ["kodeks"], ["mirza", "omg"], ["polumaraton"], ["svi"], ["o-nama"]];
 if (PHONE_GRID) {
   const set = (id, o) => Object.assign(PROJECTS.find((p) => p.id === id), o);
   set("omg", { ar: 0.8 }); set("o-nama", { ar: 3.4, small: 1 }); set("svi", { ar: 3.4 });
@@ -568,7 +568,7 @@ function startGL() {
     body.classList.toggle("phone-grid", PHONE_GRID);
     if (PHONE_GRID) {
       const px = Wv / innerWidth, py = Hv / innerHeight;           // world units per CSS pixel
-      const side = 16 * px, gap = 10 * px, label = 30 * py;
+      const side = 28 * px, gap = 14 * px, label = 30 * py;
       const W = Wv - 2 * side;
       let y = Hv / 2 - 78 * py;                                        // below the top nav
       PHONE_ROWS.forEach((row) => {
