@@ -334,3 +334,9 @@ body.carousel .car-cap { display: flex; flex-direction: column; gap: 8px; positi
 .car-tags { color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* once the carousel is up, the skip link and the scroll counter step aside */
 body.carousel.grid-on .chrome .skip, body.carousel.grid-on .chrome .progress, body.carousel.grid-on .chrome .scroll-hint { opacity: 0 !important; pointer-events: none; }
+
+/* top-left: a small white daliah mark in place of the corner tick */
+.corner-logo { position: absolute; z-index: 3; left: var(--gutter); top: var(--gutter); display: block; height: 26px; color: #fff; }
+body.is-ready .chrome .corner-logo { opacity: .5; transition: opacity .3s ease; }
+body.is-ready .chrome .corner-logo:hover, body.is-ready .chrome .corner-logo:focus-visible { opacity: .95; }
+.corner-logo svg { display: block; height: 100%; width: auto; }
